@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Manager Profile</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: #f4f7f6; font-family: sans-serif; }
+        .navbar { background: #1a1a2e !important; margin-bottom: 30px; }
+        .navbar-brand, .nav-link { color: rgba(255,255,255,0.8) !important; }
+        .nav-link:hover, .nav-link.active { color: #fff !important; }
+        .profile-header { background: white; padding: 25px; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; }
+        .avatar-section { display: flex; align-items: center; gap: 20px; }
+        .avatar { width: 70px; height: 70px; border-radius: 50%; background: #0d2137; color: white; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; font-weight: bold; }
+        .info-card { background: white; border-radius: 10px; border: 1px solid #e2e8f0; overflow: hidden; }
+        .info-item { padding: 15px 25px; border-bottom: 1px solid #f1f5f9; display: flex; }
+        .info-item:last-child { border-bottom: none; }
+        .info-label { font-weight: bold; width: 180px; color: #94a3b8; text-transform: uppercase; font-size: 11px; letter-spacing: 0.8px; }
+        .empid-badge { background: #e9ecef; padding: 4px 12px; border-radius: 6px; font-family: monospace; font-weight: bold; color: #0d2137; }
+        .modal-content { border-radius: 12px; }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark shadow-sm">
+    <div class="container">
+        <a class="navbar-brand" href="#">Manager</a>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a class="nav-link" href="/manager/dashboard">Dashboard</a></li>
+                <li class="nav-item"><a class="nav-link" href="/manager/employees">Leave Requests</a></li>
+                <li class="nav-item"><a class="nav-link" href="/manager/team">View Team</a></li>
+                <li class="nav-item"><a class="nav-link active" href="/manager/profile">My Profile</a></li>
+                <li class="nav-item"><a class="nav-link text-danger" href="/logout">Logout</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <div th:if="${param.updated}"   class="alert alert-success">Profile updated successfully.</div>
+    <div th:if="${param.pwchanged}" class="alert alert-success">Password changed successfully.</div>
+    <div th:if="${pwError}"         class="alert alert-danger"  th:text="${pwError}"></div>
+
+    <div class="profile-header">
+        <div class="avatar-section">
+            <div class="avatar" th:text="${#strings.toUpperCase(#strings.substring(user.name,0,1))}">M</div>
+            <div>
+                <h3 class="mb-1" th:text="${user.name}">Manager Name</h3>
+                <p class="text-muted mb-1" th:text="${user.email}">manager@company.com</p>
+                <span class="badge bg-dark">Manager Account</span>
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editModal">Edit Profile</button>
+            <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#pwModal">Change Password</button>
+        </div>
+    </div>
+
+    <div class="info-card mb-5">
+        <div class="info-item">
+            <div class="info-label">Manager ID</div>
+            <div><span class="empid-badge" th:text="${user.empId != null ? user.empId : 'Not Assigned'}">MGR-0000</span></div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">Full Name</div>
+            <div th:text="${user.name}">-</div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">Email</div>
+            <div th:text="${user.email}">-</div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">Phone</div>
+            <div th:text="${user.phone != null ? user.phone : 'Not set'}">-</div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">Department</div>
+            <div th:text="${user.department != null ? user.department : 'Not set'}">-</div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">Address</div>
+            <div th:text="${user.address != null ? user.address : 'Not set'}">-</div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">Bio</div>
+            <div th:text="${user.bio != null ? user.bio : 'Not set'}">-</div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Profile Modal -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content p-3">
+            <div class="modal-header border-0">
+                <h5 class="modal-title fw-bold">Edit Profile</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form th:action="@{/manager/update-profile}" method="post">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Phone</label>
+                        <input type="text" name="phone" class="form-control" th:value="${user.phone}" placeholder="+91 99999 00000">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Address</label>
+                        <input type="text" name="address" class="form-control" th:value="${user.address}" placeholder="City, State, Country">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Bio</label>
+                        <textarea name="bio" class="form-control" rows="3" th:text="${user.bio}" placeholder="Brief description..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Change Password Modal -->
+<div class="modal fade" id="pwModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content p-3">
+            <div class="modal-header border-0">
+                <h5 class="modal-title fw-bold">Change Password</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form th:action="@{/manager/change-password}" method="post">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Current Password</label>
+                        <input type="password" name="currentPassword" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">New Password</label>
+                        <input type="password" name="newPassword" class="form-control" minlength="6" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Confirm New Password</label>
+                        <input type="password" name="confirmPassword" class="form-control" minlength="6" required>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Password</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+var pwError = /*[[${pwError}]]*/ null;
+if (pwError) {
+    new bootstrap.Modal(document.getElementById('pwModal')).show();
+}
+</script>
+</body>
+</html>

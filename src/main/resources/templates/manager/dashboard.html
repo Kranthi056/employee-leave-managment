@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Manager Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { background:#f4f7f6; font-family:'Inter',sans-serif; }
+        .navbar { background:#1a1a2e !important; }
+        .navbar-brand,.nav-link { color:rgba(255,255,255,0.8) !important; }
+        .nav-link:hover,.nav-link.active { color:#fff !important; }
+
+        /* Stat cards */
+        .stat-card   { border:none; border-radius:12px; padding:26px; color:#fff; box-shadow:0 4px 15px rgba(0,0,0,.1); }
+        .bg-blue     { background:linear-gradient(135deg,#0891b2,#0e7490); }
+        .bg-yellow   { background:linear-gradient(135deg,#f6c23e,#dda20a); }
+        .bg-green    { background:linear-gradient(135deg,#1cc88a,#13855c); }
+        .bg-red      { background:linear-gradient(135deg,#e74a3b,#be2617); }
+        .stat-label  { font-size:.75rem; opacity:.9; text-transform:uppercase; font-weight:700; letter-spacing:.5px; }
+        .stat-number { font-size:2.5rem; font-weight:800; line-height:1; margin-top:8px; }
+        .card-box    { background:#fff; border-radius:12px; padding:22px; box-shadow:0 2px 10px rgba(0,0,0,.05); }
+
+        /* Holiday Widget */
+        .hw            { background:#fff; border-radius:12px; padding:18px 16px; box-shadow:0 2px 10px rgba(0,0,0,.06); }
+        .hw-title      { font-size:14px; font-weight:700; color:#1e293b; }
+        .hw-sub        { font-size:11px; color:#94a3b8; margin-bottom:10px; }
+        .hw-badge      { display:inline-flex; align-items:center; gap:5px; background:#fff7ed; color:#c2410c;
+                         border:1px solid #fed7aa; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700; margin-bottom:12px; }
+        .cal-nav       { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+        .cal-month-lbl { font-size:13px; font-weight:700; color:#1e293b; }
+        .cal-arrow     { background:#fff; border:1.5px solid #e2e8f0; border-radius:6px; width:28px; height:28px;
+                         cursor:pointer; font-size:18px; color:#64748b; display:flex; align-items:center; justify-content:center; padding:0; }
+        .cal-arrow:hover { border-color:#fed7aa; color:#c2410c; background:#fff7ed; }
+        .cal-legend    { display:flex; gap:12px; margin-bottom:8px; flex-wrap:wrap; }
+        .leg           { display:flex; align-items:center; gap:4px; font-size:10px; color:#64748b; }
+        .leg-dot       { width:10px; height:10px; border-radius:3px; flex-shrink:0; }
+        .cal-grid      { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; margin-bottom:4px; }
+        .cal-dh        { text-align:center; font-size:9px; font-weight:700; color:#94a3b8; text-transform:uppercase; padding:2px 0 6px; }
+        .cal-cell      { position:relative; text-align:center; font-size:11.5px; font-weight:500;
+                         border-radius:6px; min-height:30px; display:flex; flex-direction:column;
+                         align-items:center; justify-content:center; }
+        .cal-cell.dim  { color:#d1d5db; }
+        .cal-cell.today{ background:#eff6ff; color:#2563eb; font-weight:800; border:1.5px solid #bfdbfe; }
+        .cal-cell.hol  { background:#fff7ed; color:#c2410c; font-weight:700; border:1px solid #fed7aa; cursor:pointer; }
+        .cal-cell.hol:hover { background:#ffedd5; }
+        .cal-cell.sun  { color:#ef4444; }
+        .cal-cell.sat  { color:#8b5cf6; }
+        .h-pip         { width:4px; height:4px; border-radius:50%; background:#fb923c; position:absolute; bottom:3px; left:50%; transform:translateX(-50%); }
+        .cal-status    { text-align:center; padding:18px 10px; font-size:12px; color:#94a3b8; }
+        .cal-status.err{ color:#dc2626; }
+        .up-label      { font-size:10px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:.8px; margin:12px 0 7px; border-top:1px solid #f1f5f9; padding-top:12px; }
+        .hol-list      { max-height:210px; overflow-y:auto; }
+        .hol-list::-webkit-scrollbar { width:3px; }
+        .hol-list::-webkit-scrollbar-thumb { background:#e2e8f0; border-radius:3px; }
+        .hol-row       { display:flex; align-items:flex-start; gap:10px; padding:7px 0; border-bottom:1px solid #f8fafc; }
+        .hol-row:last-child { border:none; }
+        .hol-date      { min-width:38px; height:38px; background:#fff7ed; border:1px solid #fed7aa; border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; flex-shrink:0; }
+        .hol-dd        { font-size:13px; font-weight:800; color:#c2410c; line-height:1; }
+        .hol-mm        { font-size:8.5px; font-weight:700; color:#c2410c; text-transform:uppercase; }
+        .hol-nm        { font-size:12px; font-weight:600; color:#1e293b; line-height:1.3; }
+        .hol-ln        { font-size:10.5px; color:#94a3b8; margin-top:1px; }
+        .hol-tag       { display:inline-block; font-size:9px; font-weight:700; padding:1px 6px; border-radius:8px; margin-top:3px; background:#fff7ed; color:#c2410c; border:1px solid #fed7aa; }
+        .hol-empty     { text-align:center; padding:18px; color:#94a3b8; font-size:12px; }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark shadow-sm">
+    <div class="container">
+        <a class="navbar-brand fw-bold" href="#">Manager</a>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav ms-auto align-items-center">
+                <li class="nav-item"><a class="nav-link active" href="/manager/dashboard">Dashboard</a></li>
+                <li class="nav-item"><a class="nav-link" href="/manager/employees">Leave Requests</a></li>
+                <li class="nav-item"><a class="nav-link" href="/manager/team">View Team</a></li>
+                <li class="nav-item"><a class="nav-link" href="/manager/profile">My Profile</a></li>
+                <li class="nav-item ms-2"><a class="btn btn-outline-danger btn-sm px-3" href="/logout">Sign Out</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container py-4">
+    <h2 class="fw-bold mb-1" th:text="${'Welcome, ' + user.name}">Welcome</h2>
+    <p class="text-muted mb-4">Overview of your team's leave requests.</p>
+
+    <!-- Stats -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="stat-card bg-blue">
+                <div class="stat-label">Total Requests</div>
+                <div class="stat-number" th:text="${totalLeaves}">0</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card bg-yellow">
+                <div class="stat-label">Pending</div>
+                <div class="stat-number" th:text="${pendingLeaves}">0</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card bg-green">
+                <div class="stat-label">Approved</div>
+                <div class="stat-number" th:text="${approvedLeaves}">0</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card bg-red">
+                <div class="stat-label">Rejected</div>
+                <div class="stat-number" th:text="${rejectedLeaves}">0</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Pending notice -->
+        <div class="col-lg-7">
+            <div class="card-box" th:if="${pendingLeaves > 0}">
+                <h5 class="fw-bold mb-2">Pending Review</h5>
+                <p class="text-muted mb-3" style="font-size:13.5px;">
+                    You have <strong th:text="${pendingLeaves}">0</strong> leave request(s) waiting for your decision.
+                </p>
+                <a href="/manager/employees" class="btn btn-primary btn-sm px-4">Review Requests →</a>
+            </div>
+            <div class="card-box" th:unless="${pendingLeaves > 0}">
+                
+            </div>
+        </div>
+
+        <!-- Holiday Calendar -->
+        <div class="col-lg-5">
+            <div class="hw">
+                <div class="hw-title">Indian Public Holidays</div>
+                
+
+                <div class="cal-nav">
+                    <button class="cal-arrow" id="btnPrev">&#8249;</button>
+                    <span class="cal-month-lbl" id="calTitle"></span>
+                    <button class="cal-arrow" id="btnNext">&#8250;</button>
+                </div>
+                <div class="cal-legend">
+                    <div class="leg"><div class="leg-dot" style="background:#fff7ed;border:1px solid #fed7aa;"></div>Holiday</div>
+                    <div class="leg"><div class="leg-dot" style="background:#eff6ff;border:1.5px solid #bfdbfe;"></div>Today</div>
+                    <div class="leg"><div class="leg-dot" style="background:#fef2f2;border:1px solid #fecaca;"></div>Sunday</div>
+                </div>
+                <div class="cal-grid" id="calGrid"></div>
+                <div class="cal-status" id="calStatus">Loading…</div>
+                <div class="up-label">Upcoming Holidays</div>
+                <div class="hol-list" id="holList"><div class="hol-empty">Loading…</div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    var MONTHS   = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    var MONTHS_S = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var DAYS     = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+
+    var allHolidays = {}, holList = [];
+    var viewYear = new Date().getFullYear(), viewMonth = new Date().getMonth();
+    var loaded = false;
+
+    function pad(n) { return String(n).padStart(2, '0'); }
+    function todayKey() { var t=new Date(); return t.getFullYear()+'-'+pad(t.getMonth()+1)+'-'+pad(t.getDate()); }
+    function showStatus(msg, err) { var el=document.getElementById('calStatus'); if(el){el.textContent=msg;el.style.display='block';el.className='cal-status'+(err?' err':'');} }
+    function hideStatus() { var el=document.getElementById('calStatus'); if(el) el.style.display='none'; }
+
+    function renderGrid() {
+        var titleEl=document.getElementById('calTitle'); if(titleEl) titleEl.textContent=MONTHS[viewMonth]+' '+viewYear;
+        var grid=document.getElementById('calGrid'); if(!grid) return;
+        var todayObj=new Date(); todayObj.setHours(0,0,0,0);
+        var firstDay=new Date(viewYear,viewMonth,1).getDay();
+        var daysInMonth=new Date(viewYear,viewMonth+1,0).getDate();
+        var daysInPrev=new Date(viewYear,viewMonth,0).getDate();
+        var html=DAYS.map(function(d){return '<div class="cal-dh">'+d+'</div>';}).join('');
+        for(var i=firstDay-1;i>=0;i--) html+='<div class="cal-cell dim">'+(daysInPrev-i)+'</div>';
+        for(var d=1;d<=daysInMonth;d++){
+            var dt=new Date(viewYear,viewMonth,d), dow=dt.getDay();
+            var key=viewYear+'-'+pad(viewMonth+1)+'-'+pad(d);
+            var hol=allHolidays[key], isToday=dt.getTime()===todayObj.getTime();
+            var cls='cal-cell'+(isToday?' today':'')+(hol?' hol':'')+((!hol&&!isToday&&dow===0)?' sun':'')+((!hol&&!isToday&&dow===6)?' sat':'');
+            var pip=hol?'<span class="h-pip"></span>':'';
+            var title=hol?' title="'+(hol.localName||hol.name)+'"':'';
+            html+='<div class="'+cls+'"'+title+'>'+d+pip+'</div>';
+        }
+        var rem=(firstDay+daysInMonth)%7; if(rem>0)rem=7-rem;
+        for(var n=1;n<=rem;n++) html+='<div class="cal-cell dim">'+n+'</div>';
+        grid.innerHTML=html; hideStatus(); renderList();
+    }
+
+    function renderList() {
+        var el=document.getElementById('holList'); if(!el) return;
+        var td=todayKey();
+        var up=holList.filter(function(h){return h.date>=td;}).slice(0,12);
+        if(!up.length){el.innerHTML='<div class="hol-empty">No upcoming holidays.</div>';return;}
+        el.innerHTML=up.map(function(h){
+            var p=h.date.split('-'), day=Number(p[2]), mon=MONTHS_S[Number(p[1])-1];
+            var name=h.localName&&h.localName!==h.name?h.localName:h.name;
+            var sub=h.localName&&h.localName!==h.name?h.name:'';
+            return '<div class="hol-row"><div class="hol-date"><div class="hol-dd">'+day+'</div><div class="hol-mm">'+mon+'</div></div>'
+                  +'<div><div class="hol-nm">'+name+'</div>'+(sub?'<div class="hol-ln">'+sub+'</div>':'')
+                  +'<span class="hol-tag">'+(h.type||'National')+'</span></div></div>';
+        }).join('');
+    }
+
+    async function loadHolidays() {
+        showStatus('⏳ Loading Indian holidays…');
+        var yr=new Date().getFullYear();
+        try {
+            var r=await fetch('/api/holidays?year='+yr);
+            if(!r.ok) throw new Error('HTTP '+r.status);
+            var d1=await r.json();
+            var r2=await fetch('/api/holidays?year='+(yr+1));
+            var d2=r2.ok?await r2.json():[];
+            var combined=d1.concat(d2);
+            allHolidays={};holList=[];
+            combined.forEach(function(h){allHolidays[h.date]=h;holList.push(h);});
+            holList.sort(function(a,b){return a.date<b.date?-1:1;});
+            loaded=true; renderGrid();
+        } catch(e) { showStatus('⚠️ Could not load holidays: '+e.message, true); }
+    }
+
+    var titleEl=document.getElementById('calTitle');
+    if(titleEl) titleEl.textContent=MONTHS[viewMonth]+' '+viewYear;
+
+    document.getElementById('btnPrev').addEventListener('click',function(){if(--viewMonth<0){viewMonth=11;viewYear--;}if(loaded)renderGrid();});
+    document.getElementById('btnNext').addEventListener('click',function(){if(++viewMonth>11){viewMonth=0;viewYear++;}if(loaded)renderGrid();});
+
+    if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',loadHolidays);
+    else loadHolidays();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>HR Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --sidebar-w: 248px;
+            --primary: #4f46e5;
+            --primary-light: #eef2ff;
+            --dark: #0f172a;
+            --surface: #ffffff;
+            --bg: #f1f5f9;
+            --text: #1e293b;
+            --muted: #64748b;
+            --border: #e2e8f0;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); display: flex; min-height: 100vh; color: var(--text); }
+
+        /* ════════════ SIDEBAR ════════════ */
+        .sidebar {
+            width: var(--sidebar-w);
+            background: var(--dark);
+            position: fixed; top: 0; left: 0; bottom: 0;
+            display: flex; flex-direction: column;
+            z-index: 200;
+            overflow: hidden;
+        }
+        .sb-logo {
+            padding: 22px 18px 18px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            display: flex; align-items: center; gap: 10px;
+        }
+        .sb-logo-icon {
+            width: 36px; height: 36px; border-radius: 9px;
+            background: linear-gradient(135deg,#4f46e5,#7c3aed);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 17px; flex-shrink: 0;
+        }
+        .sb-logo-text { color: #fff; font-weight: 700; font-size: 15px; }
+        .sb-logo-sub  { color: rgba(255,255,255,0.35); font-size: 10.5px; margin-top: 1px; }
+
+        .sb-nav { flex: 1; overflow-y: auto; padding: 12px 0; }
+        .sb-nav::-webkit-scrollbar { width: 0; }
+
+        .sb-section { color: rgba(255,255,255,0.25); font-size: 9.5px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 1.2px; padding: 14px 18px 5px; }
+
+        /* Single nav item */
+        .sb-item > a {
+            display: flex; align-items: center; gap: 10px;
+            padding: 9px 18px; color: rgba(255,255,255,0.55);
+            text-decoration: none; font-size: 13.5px; font-weight: 500;
+            transition: all 0.15s; position: relative;
+        }
+        .sb-item > a:hover { color: #fff; background: rgba(255,255,255,0.06); }
+        .sb-item > a.active { color: #fff; background: rgba(79,70,229,0.22); }
+        .sb-item > a.active::before {
+            content: ''; position: absolute; left: 0; top: 4px; bottom: 4px;
+            width: 3px; background: var(--primary); border-radius: 0 3px 3px 0;
+        }
+
+        /* Group nav item (expandable) */
+        .sb-group {}
+        .sb-group-header {
+            display: flex; align-items: center; gap: 10px;
+            padding: 9px 18px; color: rgba(255,255,255,0.55);
+            font-size: 13.5px; font-weight: 500;
+            cursor: pointer; transition: all 0.15s; user-select: none;
+        }
+        .sb-group-header:hover { color: #fff; background: rgba(255,255,255,0.06); }
+        .sb-group-header.open  { color: rgba(255,255,255,0.85); }
+        .sb-chevron { margin-left: auto; font-size: 10px; opacity: 0.4; transition: transform 0.2s; }
+        .sb-group-header.open .sb-chevron { transform: rotate(90deg); opacity: 0.7; }
+        .sb-children { display: none; background: rgba(0,0,0,0.18); }
+        .sb-children.open { display: block; }
+        .sb-children a {
+            display: flex; align-items: center; gap: 7px;
+            padding: 7px 18px 7px 44px; color: rgba(255,255,255,0.42);
+            text-decoration: none; font-size: 13px; transition: all 0.15s;
+        }
+        .sb-children a::before { content: '—'; font-size: 9px; opacity: 0.5; }
+        .sb-children a:hover  { color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.04); }
+        .sb-children a.active { color: #a5b4fc; font-weight: 600; }
+
+        .sb-icon { font-size: 15px; width: 20px; text-align: center; flex-shrink: 0; }
+
+        /* Sidebar footer */
+        .sb-footer { padding: 14px; border-top: 1px solid rgba(255,255,255,0.06); }
+        .sb-user { display: flex; align-items: center; gap: 9px; padding: 10px 12px;
+            background: rgba(255,255,255,0.05); border-radius: 9px; margin-bottom: 10px; }
+        .sb-avatar { width: 32px; height: 32px; border-radius: 50%;
+            background: linear-gradient(135deg,#4f46e5,#7c3aed);
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-weight: 700; font-size: 13px; flex-shrink: 0; }
+        .sb-uname { color: #fff; font-size: 12.5px; font-weight: 600; }
+        .sb-urole { color: rgba(255,255,255,0.35); font-size: 11px; }
+        .btn-logout { display: flex; align-items: center; justify-content: center; gap: 7px;
+            width: 100%; padding: 8px; border-radius: 8px;
+            background: rgba(239,68,68,0.1); color: #f87171;
+            border: 1px solid rgba(239,68,68,0.18); font-size: 13px; font-weight: 600;
+            text-decoration: none; transition: all 0.18s; }
+        .btn-logout:hover { background: rgba(239,68,68,0.2); color: #fca5a5; }
+
+        /* ════════════ MAIN AREA ════════════ */
+        .main { margin-left: var(--sidebar-w); flex: 1; padding: 28px 28px 40px; min-height: 100vh; }
+
+        /* page header */
+        .ph { margin-bottom: 24px; }
+        .ph h1 { font-size: 21px; font-weight: 800; color: var(--dark); }
+        .ph p  { color: var(--muted); font-size: 13.5px; margin-top: 3px; }
+
+        /* stat grid */
+        .stat-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 22px; }
+        .sc { background: var(--surface); border-radius: 12px; padding: 18px 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+        .sc-icon { font-size: 24px; margin-bottom: 8px; }
+        .sc-val  { font-size: 2rem; font-weight: 800; line-height: 1; }
+        .sc-lbl  { font-size: 11.5px; color: var(--muted); font-weight: 600;
+            text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
+        .sc.s1 .sc-val { color: #4f46e5; } .sc.s2 .sc-val { color: #0891b2; }
+        .sc.s3 .sc-val { color: #059669; } .sc.s4 .sc-val { color: #ea580c; }
+
+        /* content card */
+        .card-box { background: var(--surface); border-radius: 12px; padding: 22px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+        .card-box h5 { font-size: 14.5px; font-weight: 700; margin-bottom: 16px; color: var(--dark); }
+
+        /* table */
+        .tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .tbl thead th { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.6px;
+            color: var(--muted); font-weight: 700; padding: 0 10px 10px 0; border-bottom: 2px solid var(--border); }
+        .tbl tbody td { padding: 10px 10px 10px 0; border-bottom: 1px solid #f8fafc; color: var(--text); vertical-align: middle; }
+        .tbl tbody tr:last-child td { border: none; }
+        .tbl tbody tr:hover td { background: #fafbff; }
+
+                /* ════════════ HOLIDAY WIDGET ════════════ */
+        .hw            { background:var(--surface); border-radius:12px; padding:18px 16px; box-shadow:0 1px 3px rgba(0,0,0,.06); }
+        .hw-title      { font-size:14px; font-weight:700; color:var(--dark); }
+        .hw-sub        { font-size:11px; color:var(--muted); margin-bottom:10px; }
+        .hw-badge      { display:inline-flex; align-items:center; gap:5px; background:#fff7ed; color:#c2410c; border:1px solid #fed7aa; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700; margin-bottom:12px; }
+        .cal-nav       { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+        .cal-month-lbl { font-size:13px; font-weight:700; color:var(--dark); }
+        .cal-arrow     { background:var(--surface); border:1.5px solid var(--border); border-radius:6px; width:28px; height:28px; cursor:pointer; font-size:18px; color:var(--muted); display:flex; align-items:center; justify-content:center; padding:0; }
+        .cal-arrow:hover { border-color:#fed7aa; color:#c2410c; background:#fff7ed; }
+        .cal-legend    { display:flex; gap:12px; margin-bottom:8px; flex-wrap:wrap; }
+        .leg           { display:flex; align-items:center; gap:4px; font-size:10px; color:var(--muted); }
+        .leg-dot       { width:10px; height:10px; border-radius:3px; flex-shrink:0; }
+        .cal-grid      { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; margin-bottom:4px; }
+        .cal-dh        { text-align:center; font-size:9px; font-weight:700; color:#94a3b8; text-transform:uppercase; padding:2px 0 6px; }
+        .cal-cell      { position:relative; text-align:center; font-size:11.5px; font-weight:500; border-radius:6px; min-height:30px; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+        .cal-cell.dim  { color:#d1d5db; }
+        .cal-cell.today{ background:#eff6ff; color:#2563eb; font-weight:800; border:1.5px solid #bfdbfe; }
+        .cal-cell.hol  { background:#fff7ed; color:#c2410c; font-weight:700; border:1px solid #fed7aa; cursor:pointer; }
+        .cal-cell.hol:hover { background:#ffedd5; }
+        .cal-cell.sun  { color:#ef4444; }
+        .cal-cell.sat  { color:#8b5cf6; }
+        .h-pip         { width:4px; height:4px; border-radius:50%; background:#fb923c; position:absolute; bottom:3px; left:50%; transform:translateX(-50%); }
+        .cal-status    { text-align:center; padding:18px 10px; font-size:12px; color:var(--muted); }
+        .cal-status.err{ color:#dc2626; }
+        .up-label      { font-size:10px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:.8px; margin:12px 0 7px; border-top:1px solid var(--border); padding-top:12px; }
+        .hol-list      { max-height:210px; overflow-y:auto; }
+        .hol-list::-webkit-scrollbar { width:3px; }
+        .hol-list::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+        .hol-row       { display:flex; align-items:flex-start; gap:10px; padding:7px 0; border-bottom:1px solid #f8fafc; }
+        .hol-row:last-child { border:none; }
+        .hol-date      { min-width:38px; height:38px; background:#fff7ed; border:1px solid #fed7aa; border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; flex-shrink:0; }
+        .hol-dd        { font-size:13px; font-weight:800; color:#c2410c; line-height:1; }
+        .hol-mm        { font-size:8.5px; font-weight:700; color:#c2410c; text-transform:uppercase; }
+        .hol-nm        { font-size:12px; font-weight:600; color:var(--dark); line-height:1.3; }
+        .hol-ln        { font-size:10.5px; color:var(--muted); margin-top:1px; }
+        .hol-tag       { display:inline-block; font-size:9px; font-weight:700; padding:1px 6px; border-radius:8px; margin-top:3px; background:#fff7ed; color:#c2410c; border:1px solid #fed7aa; }
+        .hol-empty     { text-align:center; padding:18px; color:var(--muted); font-size:12px; }
+
+        /* badge */
+        .badge { font-size: 11px; padding: 3px 9px; border-radius: 20px; font-weight: 600; }
+    </style>
+</head>
+<body>
+
+<!-- ══════════════ SIDEBAR ══════════════ -->
+<aside class="sidebar">
+    <div class="sb-logo">
+        <div class="sb-logo-icon"></div>
+        <div>
+            <div class="sb-logo-text">HR Portal</div>
+            <div class="sb-logo-sub">Admin Console</div>
+        </div>
+    </div>
+
+    <nav class="sb-nav">
+        <div class="sb-section">Main</div>
+
+        <div class="sb-item">
+            <a href="/hr/dashboard" class="active">
+                <span class="sb-icon"></span> Dashboard
+            </a>
+        </div>
+
+        
+
+        <!-- Employees group -->
+        <div class="sb-group" id="grp-emp">
+            <div class="sb-group-header open" onclick="toggleGroup('grp-emp')">
+                <span class="sb-icon"></span> Employees
+                <span class="sb-chevron"></span>
+            </div>
+            <div class="sb-children open">
+                <a href="/hr/employees">All Employees</a>
+                <a href="/hr/add-employee">Add Employee</a>
+            </div>
+        </div>
+
+        <!-- Managers group -->
+        <div class="sb-group" id="grp-mgr">
+            <div class="sb-group-header" onclick="toggleGroup('grp-mgr')">
+                <span class="sb-icon"></span>Managers
+                <span class="sb-chevron"></span>
+            </div>
+            <div class="sb-children">
+                <a href="/hr/managers">All Managers</a>
+                <a href="/hr/add-manager">Add Manager</a>
+                <a href="/hr/assign-manager">Assign Manager</a>
+            </div>
+        </div>
+
+        <div class="sb-section">Analytics</div>
+
+        <div class="sb-item">
+            <a href="/hr/reports">
+                <span class="sb-icon"></span> Reports
+            </a>
+        </div>
+
+        <div class="sb-section">Account</div>
+
+        <div class="sb-item">
+            <a href="/hr/profile">
+                <span class="sb-icon"></span> My Profile
+            </a>
+        </div>
+    </nav>
+
+    <div class="sb-footer">
+        <div class="sb-user">
+            <div class="sb-avatar" th:text="${#strings.toUpperCase(#strings.substring(user.name,0,1))}">H</div>
+            <div>
+                <div class="sb-uname" th:text="${user.name}">HR Admin</div>
+                <div class="sb-urole">Administrator</div>
+            </div>
+        </div>
+        <a href="/logout" class="btn-logout">Sign Out</a>
+    </div>
+</aside>
+
+<!-- ══════════════ MAIN ══════════════ -->
+<main class="main">
+    <div class="ph">
+        <h1 th:text="${'Welcome back, ' + user.name + ' 👋'}">Welcome</h1>
+        <p>Here's a live overview of your organisation.</p>
+    </div>
+
+    <!-- Stats -->
+    <div class="stat-row">
+        <div class="sc s1">
+            <div class="sc-icon"></div>
+            <div class="sc-val" th:text="${totalEmployees}">0</div>
+            <div class="sc-lbl">Total Employees</div>
+        </div>
+        <div class="sc s2">
+            <div class="sc-icon"></div>
+            <div class="sc-val" th:text="${totalManagers}">0</div>
+            <div class="sc-lbl">Total Managers</div>
+        </div>
+        <div class="sc s3">
+            <div class="sc-icon"></div>
+            <div class="sc-val" th:text="${approvedLeaves}">0</div>
+            <div class="sc-lbl">Approved Leaves</div>
+        </div>
+        <div class="sc s4">
+            <div class="sc-icon"></div>
+            <div class="sc-val" th:text="${pendingLeaves}">0</div>
+            <div class="sc-lbl">Pending Leaves</div>
+        </div>
+    </div>
+
+    <!-- Two columns -->
+    <div class="row g-3">
+        <!-- Recent Leaves -->
+        <div class="col-xl-7 col-lg-6">
+            <div class="card-box">
+                <h5>Recent Leave Requests</h5>
+                <div style="overflow-x:auto;">
+                    <table class="tbl">
+                        <thead>
+                            <tr>
+                                <th>Employee</th><th>Dept</th><th>Type</th><th>Dates</th><th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="lv : ${recentLeaves}">
+                                <td class="fw-semibold" th:text="${lv.name}">—</td>
+                                <td th:text="${lv.department}">—</td>
+                                <td th:text="${lv.leaveType}">—</td>
+                                <td style="white-space:nowrap; font-size:12px;" th:text="${lv.startDate + ' → ' + lv.endDate}">—</td>
+                                <td>
+                                    <span class="badge"
+                                          th:text="${lv.status}"
+                                          th:classappend="${lv.status=='APPROVED'?'bg-success':(lv.status=='REJECTED'?'bg-danger':'bg-warning text-dark')}">
+                                    </span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div th:if="${#lists.isEmpty(recentLeaves)}" class="h-msg">No leave requests yet.</div>
+                </div>
+            </div>
+        </div>
+
+                <!-- Public Holidays -->
+        <div class="col-xl-5 col-lg-6">
+            <div class="hw">
+                <div class="hw-title">Public Holidays</div>
+                
+                <div class="cal-nav">
+                    <button class="cal-arrow" id="btnPrev">&#8249;</button>
+                    <span class="cal-month-lbl" id="calTitle"></span>
+                    <button class="cal-arrow" id="btnNext">&#8250;</button>
+                </div>
+                <div class="cal-legend">
+                    <div class="leg"><div class="leg-dot" style="background:#fff7ed;border:1px solid #fed7aa;"></div>Holiday</div>
+                    <div class="leg"><div class="leg-dot" style="background:#eff6ff;border:1.5px solid #bfdbfe;"></div>Today</div>
+                    <div class="leg"><div class="leg-dot" style="background:#fef2f2;border:1px solid #fecaca;"></div>Sunday</div>
+                </div>
+                <div class="cal-grid" id="calGrid"></div>
+                <div class="cal-status" id="calStatus">⏳ Loading…</div>
+                <div class="up-label">Upcoming Holidays</div>
+                <div class="hol-list" id="holList"><div class="hol-empty">Loading…</div></div>
+            </div>
+        </div></div>
+        </div>
+    </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+/* ── Sidebar toggle ── */
+function toggleGroup(id) {
+    const g  = document.getElementById(id);
+    const hd = g.querySelector('.sb-group-header');
+    const ch = g.querySelector('.sb-children');
+    hd.classList.toggle('open');
+    ch.classList.toggle('open');
+}
+
+/* ── Mark active sidebar links based on current URL ── */
+(function() {
+    const p = window.location.pathname;
+    document.querySelectorAll('.sb-children a').forEach(a => {
+        if (a.getAttribute('href') === p) { a.classList.add('active'); }
+    });
+    document.querySelectorAll('.sb-item > a').forEach(a => {
+        if (a.getAttribute('href') === p) a.classList.add('active');
+        else a.classList.remove('active');
+    });
+    // Open the right group
+    if (p.startsWith('/hr/employees') || p.startsWith('/hr/add-employee')) {
+        const g = document.getElementById('grp-emp');
+        g.querySelector('.sb-group-header').classList.add('open');
+        g.querySelector('.sb-children').classList.add('open');
+    }
+    if (p.startsWith('/hr/managers') || p.startsWith('/hr/add-manager') || p.startsWith('/hr/assign-manager')) {
+        const g = document.getElementById('grp-mgr');
+        g.querySelector('.sb-group-header').classList.add('open');
+        g.querySelector('.sb-children').classList.add('open');
+    }
+})();
+
+</script>
+<script>
+(function () {
+    var MONTHS   = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    var MONTHS_S = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var DAYS     = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+    var allHolidays = {}, holList = [];
+    var viewYear = new Date().getFullYear(), viewMonth = new Date().getMonth();
+    var loaded = false;
+
+    function pad(n) { return String(n).padStart(2,'0'); }
+    function todayKey() { var t=new Date(); return t.getFullYear()+'-'+pad(t.getMonth()+1)+'-'+pad(t.getDate()); }
+    function showStatus(msg,err) { var el=document.getElementById('calStatus');if(el){el.textContent=msg;el.style.display='block';el.className='cal-status'+(err?' err':'');} }
+    function hideStatus() { var el=document.getElementById('calStatus');if(el)el.style.display='none'; }
+
+    function renderGrid() {
+        var titleEl=document.getElementById('calTitle');if(titleEl)titleEl.textContent=MONTHS[viewMonth]+' '+viewYear;
+        var grid=document.getElementById('calGrid');if(!grid)return;
+        var todayObj=new Date();todayObj.setHours(0,0,0,0);
+        var firstDay=new Date(viewYear,viewMonth,1).getDay();
+        var daysInMonth=new Date(viewYear,viewMonth+1,0).getDate();
+        var daysInPrev=new Date(viewYear,viewMonth,0).getDate();
+        var html=DAYS.map(function(d){return '<div class="cal-dh">'+d+'</div>';}).join('');
+        for(var i=firstDay-1;i>=0;i--) html+='<div class="cal-cell dim">'+(daysInPrev-i)+'</div>';
+        for(var d=1;d<=daysInMonth;d++){
+            var dt=new Date(viewYear,viewMonth,d),dow=dt.getDay();
+            var key=viewYear+'-'+pad(viewMonth+1)+'-'+pad(d);
+            var hol=allHolidays[key],isToday=dt.getTime()===todayObj.getTime();
+            var cls='cal-cell'+(isToday?' today':'')+(hol?' hol':'')+((!hol&&!isToday&&dow===0)?' sun':'')+((!hol&&!isToday&&dow===6)?' sat':'');
+            var pip=hol?'<span class="h-pip"></span>':'';
+            var title=hol?' title="'+(hol.localName||hol.name)+'"':'';
+            html+='<div class="'+cls+'"'+title+'>'+d+pip+'</div>';
+        }
+        var rem=(firstDay+daysInMonth)%7;if(rem>0)rem=7-rem;
+        for(var n=1;n<=rem;n++) html+='<div class="cal-cell dim">'+n+'</div>';
+        grid.innerHTML=html;hideStatus();renderList();
+    }
+
+    function renderList() {
+        var el=document.getElementById('holList');if(!el)return;
+        var td=todayKey();
+        var up=holList.filter(function(h){return h.date>=td;}).slice(0,12);
+        if(!up.length){el.innerHTML='<div class="hol-empty">No upcoming holidays.</div>';return;}
+        el.innerHTML=up.map(function(h){
+            var p=h.date.split('-'),day=Number(p[2]),mon=MONTHS_S[Number(p[1])-1];
+            var name=h.localName&&h.localName!==h.name?h.localName:h.name;
+            var sub=h.localName&&h.localName!==h.name?h.name:'';
+            return '<div class="hol-row"><div class="hol-date"><div class="hol-dd">'+day+'</div><div class="hol-mm">'+mon+'</div></div>'
+                  +'<div><div class="hol-nm">'+name+'</div>'+(sub?'<div class="hol-ln">'+sub+'</div>':'')
+                  +'<span class="hol-tag">'+(h.type||'National')+'</span></div></div>';
+        }).join('');
+    }
+
+    async function loadHolidays() {
+        showStatus('⏳ Loading Indian holidays…');
+        var yr=new Date().getFullYear();
+        try {
+            var r=await fetch('/api/holidays?year='+yr);
+            if(!r.ok) throw new Error('HTTP '+r.status);
+            var d1=await r.json();
+            var r2=await fetch('/api/holidays?year='+(yr+1));
+            var d2=r2.ok?await r2.json():[];
+            d1.concat(d2).forEach(function(h){allHolidays[h.date]=h;holList.push(h);});
+            holList.sort(function(a,b){return a.date<b.date?-1:1;});
+            loaded=true;renderGrid();
+        } catch(e) { showStatus('⚠️ '+e.message,true); }
+    }
+
+    var titleEl=document.getElementById('calTitle');
+    if(titleEl)titleEl.textContent=MONTHS[viewMonth]+' '+viewYear;
+    document.getElementById('btnPrev').addEventListener('click',function(){if(--viewMonth<0){viewMonth=11;viewYear--;}if(loaded)renderGrid();});
+    document.getElementById('btnNext').addEventListener('click',function(){if(++viewMonth>11){viewMonth=0;viewYear++;}if(loaded)renderGrid();});
+    if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',loadHolidays);
+    else loadHolidays();
+})();
+</script>
+</body>
+</html>

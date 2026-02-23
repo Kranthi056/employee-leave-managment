@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>HR Admin Sign Up</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: #f8fafc; font-family: sans-serif; padding-top: 50px; }
+        .card { max-width: 500px; margin: auto; background: white; padding: 30px; border: 1px solid #e2e8f0; border-radius: 10px; }
+        .header { text-align: center; margin-bottom: 25px; }
+        .header h2 { color: #1e293b; margin-bottom: 5px; }
+        label { display: block; margin-top: 14px; margin-bottom: 5px; font-weight: bold; font-size: 14px; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; }
+        .btn-submit { width: 100%; padding: 12px; background: #4f46e5; color: white; border: none; border-radius: 6px; margin-top: 20px; font-weight: bold; cursor: pointer; font-size: 15px; }
+        .footer { text-align: center; margin-top: 20px; font-size: 14px; }
+        .footer a { color: #4f46e5; text-decoration: none; }
+        .alert-danger { background: #fef2f2; border: 1px solid #fca5a5; border-radius: 6px; padding: 10px; font-size: 13px; color: #991b1b; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <div class="header">
+        <div style="font-size:48px;"></div>
+        <h2>HR Admin Registration</h2>
+        <p style="color:#64748b;">Create your HR Administrator account</p>
+    </div>
+    <div th:if="${error}" class="alert-danger">❌ <span th:text="${error}"></span></div>
+    <form th:action="@{/hrsignup}" method="post">
+        <label>Full Name</label>
+        <input type="text" name="name" placeholder="Jane Smith" required>
+        <label>Email Address</label>
+        <input type="email" name="email" placeholder="hr@company.com" required>
+        <label>Phone</label>
+        <input type="text" name="phone" placeholder="+91 99999 00000">
+        <label>Department</label>
+        <select name="department" required>
+            <option value="">-- Select --</option>
+            <option value="HR">HR</option>
+            <option value="Administration">Administration</option>
+        </select>
+        <label>Address</label>
+        <input type="text" name="address" placeholder="City, State">
+        <label>Password</label>
+        <input type="password" name="password" placeholder="Min 6 characters" required>
+        <label>Confirm Password</label>
+        <input type="password" name="confirmPassword" placeholder="Re-enter password" required>
+        <button type="submit" class="btn-submit">Create HR Account →</button>
+    </form>
+    <div class="footer">Already have an account? <a href="/login">Sign In</a></div>
+</div>
+</body>
+</html>

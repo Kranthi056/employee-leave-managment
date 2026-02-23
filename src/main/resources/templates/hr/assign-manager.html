@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"><title>HR – Assign Manager</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root{--sidebar-w:248px;--primary:#4f46e5;--dark:#0f172a;--bg:#f1f5f9;--text:#1e293b;--muted:#64748b;--border:#e2e8f0;}
+        *{box-sizing:border-box;margin:0;padding:0;}
+        body{font-family:'Inter',sans-serif;background:var(--bg);display:flex;min-height:100vh;color:var(--text);}
+        .sidebar{width:var(--sidebar-w);background:var(--dark);position:fixed;top:0;left:0;bottom:0;display:flex;flex-direction:column;z-index:200;}
+        .sb-logo{padding:20px 18px 17px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:10px;}
+        .sb-logo-icon{width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,#4f46e5,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+        .sb-logo-text{color:#fff;font-weight:700;font-size:14.5px;}.sb-logo-sub{color:rgba(255,255,255,0.3);font-size:10px;}
+        .sb-nav{flex:1;overflow-y:auto;padding:10px 0;}.sb-nav::-webkit-scrollbar{width:0;}
+        .sb-section{color:rgba(255,255,255,0.22);font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;padding:13px 18px 4px;}
+        .sb-item>a{display:flex;align-items:center;gap:10px;padding:9px 18px;color:rgba(255,255,255,0.5);text-decoration:none;font-size:13.5px;font-weight:500;transition:all 0.15s;position:relative;}
+        .sb-item>a:hover{color:#fff;background:rgba(255,255,255,0.06);}
+        .sb-item>a.active{color:#fff;background:rgba(79,70,229,0.22);}
+        .sb-item>a.active::before{content:'';position:absolute;left:0;top:4px;bottom:4px;width:3px;background:var(--primary);border-radius:0 3px 3px 0;}
+        .sb-group-header{display:flex;align-items:center;gap:10px;padding:9px 18px;color:rgba(255,255,255,0.5);font-size:13.5px;font-weight:500;cursor:pointer;transition:all 0.15s;user-select:none;}
+        .sb-group-header:hover,.sb-group-header.open{color:rgba(255,255,255,0.85);}
+        .sb-chevron{margin-left:auto;font-size:10px;opacity:0.4;transition:transform 0.2s;}
+        .sb-group-header.open .sb-chevron{transform:rotate(90deg);opacity:0.7;}
+        .sb-children{display:none;background:rgba(0,0,0,0.16);}.sb-children.open{display:block;}
+        .sb-children a{display:flex;align-items:center;gap:7px;padding:7px 18px 7px 46px;color:rgba(255,255,255,0.4);text-decoration:none;font-size:13px;transition:all 0.14s;}
+        .sb-children a::before{content:'—';font-size:9px;opacity:0.45;}
+        .sb-children a:hover{color:rgba(255,255,255,0.82);background:rgba(255,255,255,0.04);}
+        .sb-children a.active{color:#a5b4fc;font-weight:600;}
+        .sb-icon{font-size:15px;width:20px;text-align:center;flex-shrink:0;}
+        .sb-footer{padding:13px;border-top:1px solid rgba(255,255,255,0.06);}
+        .sb-user{display:flex;align-items:center;gap:9px;padding:9px 11px;background:rgba(255,255,255,0.05);border-radius:9px;margin-bottom:9px;}
+        .sb-avatar{width:31px;height:31px;border-radius:50%;background:linear-gradient(135deg,#4f46e5,#7c3aed);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;flex-shrink:0;}
+        .sb-uname{color:#fff;font-size:12.5px;font-weight:600;}.sb-urole{color:rgba(255,255,255,0.32);font-size:11px;}
+        .btn-logout{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;padding:8px;border-radius:7px;background:rgba(239,68,68,0.1);color:#f87171;border:1px solid rgba(239,68,68,0.18);font-size:13px;font-weight:600;text-decoration:none;transition:all 0.18s;}
+        .btn-logout:hover{background:rgba(239,68,68,0.2);color:#fca5a5;}
+        .main{margin-left:var(--sidebar-w);flex:1;padding:26px 26px 40px;min-height:100vh;}
+        .ph{margin-bottom:22px;}.ph h1{font-size:20px;font-weight:800;color:var(--dark);}.ph p{color:var(--muted);font-size:13.5px;margin-top:3px;}
+        .card-box{background:#fff;border-radius:12px;padding:22px;box-shadow:0 1px 3px rgba(0,0,0,0.06);margin-bottom:20px;}
+        .card-box h5{font-size:14.5px;font-weight:700;margin-bottom:14px;color:var(--dark);}
+        .tbl{width:100%;border-collapse:collapse;font-size:13px;}
+        .tbl thead th{font-size:10.5px;text-transform:uppercase;letter-spacing:0.6px;color:var(--muted);font-weight:700;padding:0 8px 10px 0;border-bottom:2px solid var(--border);}
+        .tbl tbody td{padding:9px 8px 9px 0;border-bottom:1px solid #f8fafc;vertical-align:middle;}
+        .tbl tbody tr:last-child td{border:none;}.tbl tbody tr:hover td{background:#fafbff;}
+        .mgr-card{background:#fff;border:2px solid var(--border);border-radius:10px;padding:13px 15px;margin-bottom:10px;}
+        .mgr-card.full{border-color:#fde68a;background:#fffbeb;}
+        .progress-bar-wrap{background:#f1f5f9;border-radius:99px;height:5px;margin-top:6px;}
+        .progress-bar-fill{height:5px;border-radius:99px;background:var(--primary);transition:width 0.3s;}
+        .progress-bar-fill.full{background:#f59e0b;}
+        .pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;}
+        .pill-avail{background:#dcfce7;color:#166534;}.pill-full{background:#fef3c7;color:#92400e;}
+        .btn-assign{background:#059669;color:#fff;border:none;padding:4px 10px;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;}
+        .btn-assign:hover{background:#047857;}
+        .btn-assign-dis{background:#f1f5f9;color:#94a3b8;border:none;padding:4px 10px;border-radius:6px;font-size:11.5px;cursor:not-allowed;}
+        .btn-unassign{background:#fff;color:#dc2626;border:1.5px solid #fecaca;padding:4px 10px;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;}
+        .btn-unassign:hover{background:#fef2f2;}
+        .emp-code{background:#f1f5f9;padding:2px 7px;border-radius:5px;font-family:monospace;font-size:11.5px;color:#475569;}
+        .alert{padding:12px 16px;border-radius:9px;font-size:13.5px;margin-bottom:18px;}
+        .alert-success{background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;}
+        .alert-info{background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;}
+        .alert-danger{background:#fef2f2;color:#991b1b;border:1px solid #fecaca;}
+        .dept-tag{background:#eef2ff;color:#4f46e5;padding:2px 7px;border-radius:12px;font-size:10.5px;font-weight:600;}
+    </style>
+</head>
+<body>
+<aside class="sidebar">
+    <div class="sb-logo"><div class="sb-logo-icon"></div><div><div class="sb-logo-text">HR Portal</div><div class="sb-logo-sub">Admin Console</div></div></div>
+    <nav class="sb-nav">
+        <div class="sb-section">Main</div>
+        <div class="sb-item"><a href="/hr/dashboard"><span class="sb-icon"></span> Dashboard</a></div>
+        <div class="sb-section">People</div>
+        <div class="sb-group" id="grp-emp"><div class="sb-group-header" onclick="toggleGroup('grp-emp')"><span class="sb-icon"></span> Employees <span class="sb-chevron"></span></div><div class="sb-children"><a href="/hr/employees">All Employees</a><a href="/hr/add-employee">Add Employee</a></div></div>
+        <div class="sb-group" id="grp-mgr"><div class="sb-group-header open" onclick="toggleGroup('grp-mgr')"><span class="sb-icon"></span> Managers <span class="sb-chevron"></span></div>
+            <div class="sb-children open"><a href="/hr/managers">All Managers</a><a href="/hr/add-manager">Add Manager</a><a href="/hr/assign-manager" class="active">Assign Manager</a></div></div>
+        <div class="sb-section">Analytics</div>
+        <div class="sb-item"><a href="/hr/reports"><span class="sb-icon"></span> Reports</a></div>
+        <div class="sb-section">Account</div>
+        <div class="sb-item"><a href="/hr/profile"><span class="sb-icon"></span> My Profile</a></div>
+    </nav>
+    <div class="sb-footer">
+        <div class="sb-user"><div class="sb-avatar" th:text="${#strings.toUpperCase(#strings.substring(user.name,0,1))}">H</div><div><div class="sb-uname" th:text="${user.name}">HR</div><div class="sb-urole">Administrator</div></div></div>
+        <a href="/logout" class="btn-logout">Sign Out</a>
+    </div>
+</aside>
+
+<main class="main">
+    <div class="ph"><h1>Assign Managers</h1><p>Assign employees to manager teams. Each manager can have up to 5 members.</p></div>
+
+    <div th:if="${param.assigned}"   class="alert alert-success">✅ Employee assigned successfully.</div>
+    <div th:if="${param.unassigned}" class="alert alert-info">ℹ️ Employee unassigned from their manager.</div>
+    <div th:if="${param.error}"      class="alert alert-danger">⚠️ <span th:text="${param.error}">Error</span></div>
+
+    <div class="row g-3">
+        <!-- Left: manager team cards -->
+        <div class="col-lg-4">
+            <div class="card-box">
+                <h5>Manager Teams</h5>
+                <div th:each="mgr : ${managers}">
+                    <div class="mgr-card" th:classappend="${mgr.teamSize >= 5} ? 'full'">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div style="font-weight:700;font-size:13.5px;" th:text="${mgr.name}">Manager</div>
+                                <span class="dept-tag" th:text="${mgr.department != null ? mgr.department : 'N/A'}">Dept</span>
+                            </div>
+                            <span th:if="${mgr.teamSize >= 5}" class="pill pill-full">Full</span>
+                            <span th:unless="${mgr.teamSize >= 5}" class="pill pill-avail" th:text="${(5-mgr.teamSize)+' free'}">slots</span>
+                        </div>
+                        <div style="font-size:11.5px;color:var(--muted);margin-top:4px;" th:text="${mgr.teamSize+' / 5 members'}">0/5</div>
+                        <div class="progress-bar-wrap">
+                            <div class="progress-bar-fill" th:classappend="${mgr.teamSize>=5}?'full'" th:style="${'width:'+(mgr.teamSize*20)+'%'}"></div>
+                        </div>
+                    </div>
+                </div>
+                <div th:if="${#lists.isEmpty(managers)}" style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">No active managers yet.</div>
+            </div>
+        </div>
+
+        <!-- Right: unassigned + assigned -->
+        <div class="col-lg-8">
+            <div class="card-box">
+                <h5>Unassigned Employees</h5>
+                <div th:if="${#lists.isEmpty(unassignedEmployees)}" style="text-align:center;padding:18px;color:var(--muted);font-size:13px;">All employees have been assigned.</div>
+                <div style="overflow-x:auto;" th:if="${!#lists.isEmpty(unassignedEmployees)}">
+                    <table class="tbl">
+                        <thead><tr><th>Emp ID</th><th>Name</th><th>Department</th><th>Assign To</th></tr></thead>
+                        <tbody>
+                            <tr th:each="emp : ${unassignedEmployees}">
+                                <td><span class="emp-code" th:text="${emp.empId != null ? emp.empId : '—'}">—</span></td>
+                                <td style="font-weight:600;" th:text="${emp.name}">Name</td>
+                                <td th:text="${emp.department != null ? emp.department : '—'}">—</td>
+                                <td>
+                                    <div style="display:flex;flex-wrap:wrap;gap:4px;">
+                                        <th:block th:each="mgr : ${managers}">
+                                            <form th:if="${mgr.teamSize < 5}" th:action="@{/hr/assign-manager}" method="post" style="display:inline;">
+                                                <input type="hidden" name="employeeId" th:value="${emp.id}">
+                                                <input type="hidden" name="managerId"  th:value="${mgr.id}">
+                                                <button type="submit" class="btn-assign" th:text="${mgr.name}">Assign</button>
+                                            </form>
+                                            <span th:unless="${mgr.teamSize < 5}" class="btn-assign-dis" th:text="${mgr.name+' (Full)'}">Full</span>
+                                        </th:block>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card-box">
+                <h5>Assigned Employees <span style="font-size:12px;font-weight:400;color:var(--muted);">(unassign to move)</span></h5>
+                <div th:if="${#lists.isEmpty(assignedEmployees)}" style="text-align:center;padding:18px;color:var(--muted);font-size:13px;">No assigned employees yet.</div>
+                <div style="overflow-x:auto;" th:if="${!#lists.isEmpty(assignedEmployees)}">
+                    <table class="tbl">
+                        <thead><tr><th>Emp ID</th><th>Name</th><th>Department</th><th>Current Manager</th><th>Action</th></tr></thead>
+                        <tbody>
+                            <tr th:each="emp : ${assignedEmployees}">
+                                <td><span class="emp-code" th:text="${emp.empId != null ? emp.empId : '—'}">—</span></td>
+                                <td style="font-weight:600;" th:text="${emp.name}">Name</td>
+                                <td th:text="${emp.department != null ? emp.department : '—'}">—</td>
+                                <td>
+                                    <th:block th:each="mgr : ${allManagers}">
+                                        <span th:if="${mgr.id == emp.managerId}" style="font-weight:600;color:var(--primary);" th:text="${mgr.name}">Manager</span>
+                                    </th:block>
+                                </td>
+                                <td>
+                                    <form th:action="@{/hr/unassign-employee}" method="post" style="display:inline;" onsubmit="return confirm('Unassign this employee?')">
+                                        <input type="hidden" name="employeeId" th:value="${emp.id}">
+                                        <button type="submit" class="btn-unassign">Unassign</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+<script>function toggleGroup(id){const g=document.getElementById(id),hd=g.querySelector('.sb-group-header'),ch=g.querySelector('.sb-children');hd.classList.toggle('open');ch.classList.toggle('open');}</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body></html>
