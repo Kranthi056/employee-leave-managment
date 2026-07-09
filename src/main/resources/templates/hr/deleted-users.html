@@ -1,0 +1,72 @@
+
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Deleted Records</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: #f4f7f6; font-family: sans-serif; }
+        .navbar { background: #1a1a2e !important; margin-bottom: 30px; }
+        .navbar-brand, .nav-link { color: rgba(255,255,255,0.8) !important; }
+        .nav-link:hover, .nav-link.active { color: #fff !important; }
+        .card { border-radius: 10px; border: none; box-shadow: 0 2px 10px rgba(0,0,0,0.06); }
+        .empid-code { background:#fef2f2; color:#991b1b; padding:2px 8px; border-radius:6px; font-family:monospace; font-size:12px; }
+        .role-badge-hr  { background:#eef2ff; color:#4f46e5; }
+        .role-badge-mgr { background:#fff7ed; color:#c2410c; }
+        .role-badge-emp { background:#f0fdf4; color:#15803d; }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark shadow-sm">
+    <div class="container">
+        <a class="navbar-brand" href="#">HR Admin</a>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a class="nav-link" href="/hr/dashboard">Dashboard</a></li>
+                <li class="nav-item"><a class="nav-link" href="/hr/employees">Employees</a></li>
+                <li class="nav-item"><a class="nav-link" href="/hr/managers">Managers</a></li>
+                <li class="nav-item"><a class="nav-link" href="/hr/assign-manager">Assign Manager</a></li>
+                <li class="nav-item"><a class="nav-link active" href="/hr/deleted-users">Deleted Records</a></li>
+                <li class="nav-item"><a class="nav-link" href="/hr/profile">My Profile</a></li>
+                <li class="nav-item"><a class="nav-link text-danger" href="/logout">Logout</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <h3 class="mb-1">Deleted Records</h3>
+    <p class="text-muted mb-4" style="font-size:13.5px;">
+        Read-only audit archive. These are basic details preserved from accounts that were
+        <strong>permanently deleted</strong> — not the same as "Deactivated" accounts, which
+        still exist in the live Employees/Managers lists and can be restored.
+    </p>
+
+    <div class="card p-4">
+        <div th:if="${#lists.isEmpty(deletedUsers)}" class="alert alert-info text-center mb-0">
+            No records have been permanently deleted yet.
+        </div>
+        <table class="table table-hover align-middle" th:if="${!#lists.isEmpty(deletedUsers)}">
+            <thead class="table-dark">
+                <tr><th>Former ID</th><th>Name</th><th>Email</th><th>Role</th><th>Department</th><th>Deleted By</th><th>Deleted At</th></tr>
+            </thead>
+            <tbody>
+                <tr th:each="d : ${deletedUsers}">
+                    <td><span class="empid-code" th:text="${d.empId != null ? d.empId : '—'}">—</span></td>
+                    <td class="fw-semibold" th:text="${d.name}">Name</td>
+                    <td th:text="${d.email}">email@company.com</td>
+                    <td>
+                        <span class="badge"
+                              th:classappend="${d.role == 'ROLE_HR'} ? 'role-badge-hr' : (${d.role == 'ROLE_MANAGER'} ? 'role-badge-mgr' : 'role-badge-emp')"
+                              th:text="${#strings.replace(d.role, 'ROLE_', '')}">EMPLOYEE</span>
+                    </td>
+                    <td th:text="${d.department != null ? d.department : '—'}">—</td>
+                    <td th:text="${d.deletedBy}">hr@company.com</td>
+                    <td th:text="${d.deletedAt}">2026-01-01 12:00</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+</body>
+</html>

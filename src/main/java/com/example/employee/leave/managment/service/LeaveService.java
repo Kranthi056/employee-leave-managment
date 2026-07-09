@@ -18,7 +18,6 @@ public class LeaveService {
         this.leaveRepository = leaveRepository;
     }
 
-    // Returns an error message string if validation fails, or null if everything is fine
     public String validateLeave(LeaveRequest leave, int userId) {
         LocalDate today = LocalDate.now();
 
@@ -56,6 +55,13 @@ public class LeaveService {
         return leaveRepository.getByManagerTeam(managerId);
     }
 
+    // ── NEW: all leave requests submitted by managers — used by HR's
+    // manager-leave approval screen, since managers' own leave isn't
+    // approved by another manager, it's approved by HR.
+    public List<LeaveRequest> getManagerLeaves() {
+        return leaveRepository.getByRole("ROLE_MANAGER");
+    }
+
     public void updateStatus(int id, String status) {
         leaveRepository.updateStatus(id, status);
     }
@@ -88,8 +94,8 @@ public class LeaveService {
     public List<LeaveRequest> getRecentLeaves(int limit) {
         return leaveRepository.getRecentLeaves(limit);
     }
+
     public void deleteLeave(int id) {
         leaveRepository.deleteLeave(id);
     }
-    
 }

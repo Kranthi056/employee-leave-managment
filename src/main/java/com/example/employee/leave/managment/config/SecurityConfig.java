@@ -1,5 +1,7 @@
 package com.example.employee.leave.managment.config;
 
+import com.example.employee.leave.managment.service.UserService;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -13,9 +15,18 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 public class SecurityConfig {
 
     private final CustomerUserDetailsService userDetailsService;
+    private final UserService                userService;
+    private final LoginAttemptFailureHandler loginAttemptFailureHandler;
+    private final MeterRegistry meterRegistry;   
 
-    public SecurityConfig(CustomerUserDetailsService userDetailsService) {
-        this.userDetailsService = userDetailsService;
+    public SecurityConfig(CustomerUserDetailsService userDetailsService,
+                          UserService userService,
+                          MeterRegistry meterRegistry,
+                          LoginAttemptFailureHandler loginAttemptFailureHandler) {
+        this.userDetailsService         = userDetailsService;
+        this.userService                = userService;
+        this.loginAttemptFailureHandler = loginAttemptFailureHandler;
+        this.meterRegistry              = meterRegistry;             
     }
 
     @Bean
@@ -43,7 +54,10 @@ public class SecurityConfig {
                     new AntPathRequestMatcher("/css/**"),
                     new AntPathRequestMatcher("/js/**"),
                     new AntPathRequestMatcher("/images/**"),
-                    new AntPathRequestMatcher("/webjars/**")
+                    new AntPathRequestMatcher("/webjars/**"),
+                    // Only actually exists when the app runs with the "dev" profile —
+                    // see DevAdminController's @Profile("dev").
+                    new AntPathRequestMatcher("/dev/**")
                 ).permitAll()
                 .requestMatchers("/employee/**").hasRole("EMPLOYEE")
                 .requestMatchers("/manager/**").hasRole("MANAGER")
@@ -55,6 +69,10 @@ public class SecurityConfig {
                 .loginPage("/login")
                 .loginProcessingUrl("/login")
                 .successHandler((request, response, authentication) -> {
+                    // NEW: a successful login always clears any failed-attempt count
+                    // and any lock on this account.
+                    userService.resetFailedLogin(authentication.getName());
+
                     String dbRole       = authentication.getAuthorities().iterator().next().getAuthority();
                     String selectedRole = request.getParameter("selectedRole");
 
@@ -77,7 +95,9 @@ public class SecurityConfig {
                     else if (dbRole.equals("ROLE_HR"))       response.sendRedirect("/hr/dashboard");
                     else                                     response.sendRedirect("/login?error");
                 })
-                .failureUrl("/login?error")
+                // NEW: replaced .failureUrl(...) with a custom handler that tracks
+                // attempts and applies lockout.
+                .failureHandler(loginAttemptFailureHandler)
                 .permitAll()
             )
             .logout(logout -> logout

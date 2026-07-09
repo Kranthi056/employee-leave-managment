@@ -1,28 +1,24 @@
+
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <title>Leave Management Portal</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        /* 1. BASIC RESET & THEME */
         body {
             margin: 0;
             font-family: 'Segoe UI', sans-serif;
-            background-color: #f4f7f6; /* Soft grey-blue background */
+            background-color: #f4f7f6;
             color: #334155;
         }
-
-        /* 2. NAVIGATION BAR */
         .nav-header {
             background: #ffffff;
             padding: 15px 50px;
             border-bottom: 2px solid #e2e8f0;
             font-weight: bold;
             font-size: 1.2rem;
-            color: #4f46e5; /* Indigo Theme */
+            color: #4f46e5;
         }
-
-        /* 3. MAIN CONTENT LAYOUT */
         .container-main {
             max-width: 1000px;
             margin: 50px auto;
@@ -30,8 +26,6 @@
             gap: 40px;
             align-items: flex-start;
         }
-
-        /* 4. LEFT SIDE: INFO TEXT */
         .info-box { flex: 1; }
         .info-box h1 { font-size: 2rem; font-weight: 800; margin-bottom: 20px; }
         .highlight-box {
@@ -41,8 +35,6 @@
             border-left: 5px solid #4f46e5;
             box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
-
-        /* 5. RIGHT SIDE: LOGIN CARD */
         .login-card {
             width: 400px;
             background: #ffffff;
@@ -50,8 +42,6 @@
             border-radius: 12px;
             box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
         }
-
-        /* 6. ROLE TABS (Buttons) */
         .role-selector {
             display: flex;
             margin-bottom: 20px;
@@ -74,8 +64,6 @@
             border-radius: 4px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-
-        /* 7. FORMS & BUTTONS */
         input {
             width: 100%;
             padding: 10px;
@@ -93,8 +81,10 @@
             font-weight: bold;
             cursor: pointer;
         }
-
-        /* 8. FOOTER */
+        .btn-submit:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+        }
         footer {
             text-align: center;
             margin-top: auto;
@@ -112,11 +102,11 @@
     </div>
 
     <div class="container-main">
-        
+
         <div class="info-box">
             <h1>Leave Management Portal</h1>
             <p>We are committed to building efficient digital workplace solutions that streamline internal operations. Our Leave Management Portal is designed to simplify leave tracking, enhance transparency, and improve workforce planning for modern organizations.</p>
-            
+
             <div class="highlight-box">
                 <h4 style="color: #1e293b;">Why This Portal?</h4>
                 <p>Managing employee leave manually can lead to confusion, delays, and errors. Our portal provides a centralized system to automate leave applications, approvals, and reporting.</p>
@@ -126,7 +116,23 @@
         <div class="login-card">
             <h3 style="margin-bottom: 20px;">Sign In</h3>
 
-            <div th:if="${param.error}" class="alert alert-danger py-1 small">Invalid Credentials.</div>
+            <!-- Wrong password, account still has attempts left -->
+            <div th:if="${param.error != null}">
+                Invalid Credentials.
+                <span th:if="${param.attempts}"
+                      th:text="'(' + ${param.attempts[0]} + ' attempt(s) remaining before temporary lockout)'"></span>
+            </div>
+
+            <!-- Account locked out after 5 failed attempts -->
+            <div th:if="${param.locked}" class="alert alert-danger py-1 small">
+                🔒 Too many failed attempts. This account is temporarily locked for
+                <strong>5 minutes</strong>. Please wait before trying again.
+            </div>
+
+            <div th:if="${param.wrongrole}" class="alert alert-warning py-1 small">
+                That account isn't registered under the role you selected.
+            </div>
+
             <div th:if="${param.logout}" class="alert alert-success py-1 small">Logged out.</div>
 
             <div class="role-selector">
@@ -135,16 +141,16 @@
                 <div id="tabHR"  class="tab" onclick="setRole('hr')">HR Admin</div>
             </div>
 
-            <form th:action="@{/login}" method="post">
+            <form th:action="@{/login}" method="post" id="loginForm">
                 <input type="hidden" name="selectedRole" id="selectedRole" value="employee">
-                
+
                 <label class="small fw-bold">Email</label>
                 <input type="email" name="username" placeholder="email@company.com" required>
-                
+
                 <label class="small fw-bold">Password</label>
                 <input type="password" name="password" placeholder="••••••••" required>
-                
-                <button type="submit" class="btn-submit">Login →</button>
+
+                <button type="submit" class="btn-submit" id="submitBtn" th:text="${param.locked} ? 'Locked — Try Again Later' : 'Login →'">Login →</button>
             </form>
 
             <div class="mt-3 text-center small text-muted">
@@ -162,21 +168,32 @@
 
     <script>
         function setRole(role) {
-            // Update hidden input for backend
             document.getElementById('selectedRole').value = role;
-
-            // Remove 'active' class from all tabs, then add to the clicked one
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             var tabId = { employee: 'tabEmp', manager: 'tabMgr', hr: 'tabHR' };
             document.getElementById(tabId[role]).classList.add('active');
 
-            // Hide all help text, then show the correct one
             document.getElementById('txtEmp').style.display = 'none';
             document.getElementById('txtMgr').style.display = 'none';
             document.getElementById('txtHR').style.display = 'none';
             var txtId = { employee: 'txtEmp', manager: 'txtMgr', hr: 'txtHR' };
             document.getElementById(txtId[role]).style.display = 'inline';
         }
+
+        // If we just got redirected back with ?locked, briefly disable the
+        // submit button so it's visually clear retrying immediately won't help.
+        // This is purely cosmetic — the real enforcement happens server-side
+        // regardless of what this script does.
+        (function () {
+            var params = new URLSearchParams(window.location.search);
+            if (params.has('locked')) {
+                document.getElementById('submitBtn').disabled = true;
+                setTimeout(function () {
+                    document.getElementById('submitBtn').disabled = false;
+                    document.getElementById('submitBtn').textContent = 'Login →';
+                }, 15000); // just a short cosmetic cooldown, not the real 5-minute lock
+            }
+        })();
     </script>
 </body>
 </html>

@@ -1,0 +1,69 @@
+
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Manager Assignment Log</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: #f4f7f6; font-family: sans-serif; }
+        .navbar { background: #1a1a2e !important; margin-bottom: 30px; }
+        .navbar-brand, .nav-link { color: rgba(255,255,255,0.8) !important; }
+        .nav-link:hover, .nav-link.active { color: #fff !important; }
+        .card { border-radius: 10px; border: none; box-shadow: 0 2px 10px rgba(0,0,0,0.06); }
+        .action-assigned { background:#f0fdf4; color:#15803d; }
+        .action-unassigned { background:#fff7ed; color:#c2410c; }
+        .action-cascade { background:#fef2f2; color:#991b1b; }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark shadow-sm">
+    <div class="container">
+        <a class="navbar-brand" href="#">HR Admin</a>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a class="nav-link" href="/hr/dashboard">Dashboard</a></li>
+                <li class="nav-item"><a class="nav-link" href="/hr/employees">Employees</a></li>
+                <li class="nav-item"><a class="nav-link" href="/hr/managers">Managers</a></li>
+                <li class="nav-item"><a class="nav-link" href="/hr/assign-manager">Assign Manager</a></li>
+                <li class="nav-item"><a class="nav-link" href="/hr/deleted-users">Deleted Records</a></li>
+                <li class="nav-item"><a class="nav-link" href="/hr/profile">My Profile</a></li>
+                <li class="nav-item"><a class="nav-link text-danger" href="/logout">Logout</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="mb-0">Manager Assignment Log</h3>
+        <a href="/hr/assign-manager" class="btn btn-outline-secondary btn-sm">← Back to Assign Manager</a>
+    </div>
+    <p class="text-muted mb-4" style="font-size:13.5px;">
+        Full history of every time an employee was assigned to or removed from a manager's team,
+        including automatic unassignments caused by a manager being permanently deleted.
+    </p>
+
+    <div class="card p-4">
+        <div th:if="${#lists.isEmpty(logs)}" class="alert alert-info text-center mb-0">No activity recorded yet.</div>
+        <table class="table table-hover align-middle" th:if="${!#lists.isEmpty(logs)}">
+            <thead class="table-dark">
+                <tr><th>Employee</th><th>Manager</th><th>Action</th><th>Changed By</th><th>When</th></tr>
+            </thead>
+            <tbody>
+                <tr th:each="log : ${logs}">
+                    <td class="fw-semibold" th:text="${log.employeeName != null ? log.employeeName : '(deleted employee)'}">Employee</td>
+                    <td th:text="${log.managerName != null ? log.managerName : '—'}">Manager</td>
+                    <td>
+                        <span class="badge"
+                              th:classappend="${log.action == 'ASSIGNED'} ? 'action-assigned' : (${log.action == 'UNASSIGNED'} ? 'action-unassigned' : 'action-cascade')"
+                              th:text="${log.action}">ASSIGNED</span>
+                    </td>
+                    <td th:text="${log.changedBy}">hr@company.com</td>
+                    <td th:text="${log.changedAt}">2026-01-01 12:00</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+</body>
+</html>

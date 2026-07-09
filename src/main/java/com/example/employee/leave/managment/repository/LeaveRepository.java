@@ -56,6 +56,17 @@ public class LeaveRepository {
         return jdbcTemplate.query(sql, leaveMapper, managerId);
     }
 
+    // ── NEW: all leave requests submitted by users of a given role.
+    // Used so HR can see/approve leave requests submitted by MANAGERS
+    // specifically (managers don't have a manager_id of their own, so
+    // getByManagerTeam doesn't apply to them).
+    public List<LeaveRequest> getByRole(String role) {
+        String sql = "SELECT lr.*, u.name, u.department FROM leave_request lr " +
+                     "JOIN users u ON lr.user_id = u.id " +
+                     "WHERE u.role = ? ORDER BY lr.id DESC";
+        return jdbcTemplate.query(sql, leaveMapper, role);
+    }
+
     public void updateStatus(int id, String status) {
         String sql = "UPDATE leave_request SET status = ? WHERE id = ?";
         jdbcTemplate.update(sql, status, id);
@@ -94,15 +105,20 @@ public class LeaveRepository {
         return jdbcTemplate.query(sql, leaveMapper, limit);
     }
 
-    // Check if user already has a leave overlapping the given dates (PENDING or APPROVED)
     public boolean hasOverlappingLeave(int userId, LocalDate startDate, LocalDate endDate) {
         String sql = "SELECT COUNT(*) FROM leave_request WHERE user_id = ? AND status IN ('PENDING','APPROVED') " +
                      "AND start_date <= ? AND end_date >= ?";
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class, userId, endDate, startDate);
         return count != null && count > 0;
     }
+
     public void deleteLeave(int id) {
         String sql = "DELETE FROM leave_request WHERE id = ?";
         jdbcTemplate.update(sql, id);
+    }
+
+    public void deleteByUserId(int userId) {
+        String sql = "DELETE FROM leave_request WHERE user_id = ?";
+        jdbcTemplate.update(sql, userId);
     }
 }

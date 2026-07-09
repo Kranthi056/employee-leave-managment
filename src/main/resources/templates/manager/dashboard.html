@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
@@ -11,7 +12,6 @@
         .navbar-brand,.nav-link { color:rgba(255,255,255,0.8) !important; }
         .nav-link:hover,.nav-link.active { color:#fff !important; }
 
-        /* Stat cards */
         .stat-card   { border:none; border-radius:12px; padding:26px; color:#fff; box-shadow:0 4px 15px rgba(0,0,0,.1); }
         .bg-blue     { background:linear-gradient(135deg,#0891b2,#0e7490); }
         .bg-yellow   { background:linear-gradient(135deg,#f6c23e,#dda20a); }
@@ -21,12 +21,8 @@
         .stat-number { font-size:2.5rem; font-weight:800; line-height:1; margin-top:8px; }
         .card-box    { background:#fff; border-radius:12px; padding:22px; box-shadow:0 2px 10px rgba(0,0,0,.05); }
 
-        /* Holiday Widget */
         .hw            { background:#fff; border-radius:12px; padding:18px 16px; box-shadow:0 2px 10px rgba(0,0,0,.06); }
         .hw-title      { font-size:14px; font-weight:700; color:#1e293b; }
-        .hw-sub        { font-size:11px; color:#94a3b8; margin-bottom:10px; }
-        .hw-badge      { display:inline-flex; align-items:center; gap:5px; background:#fff7ed; color:#c2410c;
-                         border:1px solid #fed7aa; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700; margin-bottom:12px; }
         .cal-nav       { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
         .cal-month-lbl { font-size:13px; font-weight:700; color:#1e293b; }
         .cal-arrow     { background:#fff; border:1.5px solid #e2e8f0; border-radius:6px; width:28px; height:28px;
@@ -72,7 +68,9 @@
         <div class="collapse navbar-collapse">
             <ul class="navbar-nav ms-auto align-items-center">
                 <li class="nav-item"><a class="nav-link active" href="/manager/dashboard">Dashboard</a></li>
-                <li class="nav-item"><a class="nav-link" href="/manager/employees">Leave Requests</a></li>
+                <li class="nav-item"><a class="nav-link" href="/manager/employees">Employee Leaves</a></li>
+                <li class="nav-item"><a class="nav-link" href="/manager/apply">Apply Leave</a></li>
+                <li class="nav-item"><a class="nav-link" href="/manager/my-leaves">My Leaves</a></li>
                 <li class="nav-item"><a class="nav-link" href="/manager/team">View Team</a></li>
                 <li class="nav-item"><a class="nav-link" href="/manager/profile">My Profile</a></li>
                 <li class="nav-item ms-2"><a class="btn btn-outline-danger btn-sm px-3" href="/logout">Sign Out</a></li>
@@ -85,7 +83,6 @@
     <h2 class="fw-bold mb-1" th:text="${'Welcome, ' + user.name}">Welcome</h2>
     <p class="text-muted mb-4">Overview of your team's leave requests.</p>
 
-    <!-- Stats -->
     <div class="row g-3 mb-4">
         <div class="col-6 col-md-3">
             <div class="stat-card bg-blue">
@@ -114,7 +111,6 @@
     </div>
 
     <div class="row g-4">
-        <!-- Pending notice -->
         <div class="col-lg-7">
             <div class="card-box" th:if="${pendingLeaves > 0}">
                 <h5 class="fw-bold mb-2">Pending Review</h5>
@@ -124,16 +120,15 @@
                 <a href="/manager/employees" class="btn btn-primary btn-sm px-4">Review Requests →</a>
             </div>
             <div class="card-box" th:unless="${pendingLeaves > 0}">
-                
+                <h5 class="fw-bold mb-2">All caught up 🎉</h5>
+                <p class="text-muted mb-3" style="font-size:13.5px;">No pending leave requests from your team right now.</p>
+                <a href="/manager/apply" class="btn btn-outline-primary btn-sm px-4">Apply for Your Own Leave →</a>
             </div>
         </div>
 
-        <!-- Holiday Calendar -->
         <div class="col-lg-5">
             <div class="hw">
                 <div class="hw-title">Indian Public Holidays</div>
-                
-
                 <div class="cal-nav">
                     <button class="cal-arrow" id="btnPrev">&#8249;</button>
                     <span class="cal-month-lbl" id="calTitle"></span>

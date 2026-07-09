@@ -1,0 +1,121 @@
+
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Manager Leave Requests</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: #f4f7f6; font-family: sans-serif; }
+        .navbar { background: #1a1a2e !important; margin-bottom: 30px; }
+        .navbar-brand, .nav-link { color: rgba(255,255,255,0.8) !important; }
+        .nav-link:hover, .nav-link.active { color: #fff !important; }
+        .card { border-radius: 10px; border: none; box-shadow: 0 2px 10px rgba(0,0,0,0.06); }
+        .modal-content { border-radius: 12px; }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark shadow-sm">
+    <div class="container">
+        <a class="navbar-brand" href="#">HR Admin</a>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a class="nav-link" href="/hr/dashboard">Dashboard</a></li>
+                <li class="nav-item"><a class="nav-link" href="/hr/employees">Employees</a></li>
+                <li class="nav-item"><a class="nav-link" href="/hr/managers">Managers</a></li>
+                <li class="nav-item"><a class="nav-link active" href="/hr/manager-leaves">Manager Leaves</a></li>
+                <li class="nav-item"><a class="nav-link" href="/hr/assign-manager">Assign Manager</a></li>
+                <li class="nav-item"><a class="nav-link" href="/hr/deleted-users">Deleted Records</a></li>
+                <li class="nav-item"><a class="nav-link" href="/hr/profile">My Profile</a></li>
+                <li class="nav-item"><a class="nav-link text-danger" href="/logout">Logout</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <h3>Manager Leave Requests</h3>
+    <p class="text-muted" style="font-size:13.5px;">
+        Leave requests submitted by managers — since managers approve their own team's leave,
+        their own requests come to HR for review instead.
+    </p>
+    <hr>
+
+    <div th:if="${param.approved}" class="alert alert-success">Leave request approved successfully.</div>
+    <div th:if="${param.rejected}" class="alert alert-warning">Leave request rejected.</div>
+
+    <div th:if="${#lists.isEmpty(leaves)}" class="alert alert-info">No leave requests from managers yet.</div>
+
+    <div class="card p-4" th:if="${!#lists.isEmpty(leaves)}">
+        <table class="table table-hover align-middle">
+            <thead class="table-dark">
+                <tr><th>Manager</th><th>Dept</th><th>Type</th><th>Dates</th><th>Reason</th><th>Status</th><th>Action</th></tr>
+            </thead>
+            <tbody>
+                <tr th:each="leave : ${leaves}">
+                    <td class="fw-semibold" th:text="${leave.name}">Name</td>
+                    <td th:text="${leave.department}">Dept</td>
+                    <td th:text="${leave.leaveType}">Type</td>
+                    <td>
+                        <small th:text="${leave.startDate}">-</small> →
+                        <small th:text="${leave.endDate}">-</small>
+                    </td>
+                    <td th:text="${leave.reason}">-</td>
+                    <td>
+                        <span class="badge" th:text="${leave.status}"
+                              th:classappend="${leave.status == 'APPROVED' ? 'bg-success' : (leave.status == 'REJECTED' ? 'bg-danger' : 'bg-warning text-dark')}">
+                        </span>
+                        <div th:if="${leave.status == 'REJECTED' and leave.rejectionReason != null}"
+                             class="text-danger" style="font-size:11px;margin-top:3px;"
+                             th:text="'Reason: ' + ${leave.rejectionReason}">
+                        </div>
+                    </td>
+                    <td>
+                        <div th:if="${leave.status == 'PENDING'}">
+                            <a th:href="@{/hr/manager-leaves/approve/{id}(id=${leave.id})}" class="btn btn-sm btn-success me-1">Approve</a>
+                            <button class="btn btn-sm btn-danger"
+                                    data-bs-toggle="modal" data-bs-target="#rejectModal"
+                                    th:attr="data-id=${leave.id}"
+                                    onclick="setRejectId(this)">Reject</button>
+                        </div>
+                        <small th:unless="${leave.status == 'PENDING'}" class="text-muted">Locked</small>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Reject Modal -->
+<div class="modal fade" id="rejectModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content p-3">
+            <div class="modal-header border-0">
+                <h5 class="modal-title fw-bold text-danger">Reject Leave Request</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form th:action="@{/hr/manager-leaves/reject}" method="post">
+                <div class="modal-body">
+                    <input type="hidden" name="id" id="rejectLeaveId">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Reason for Rejection</label>
+                        <textarea name="rejectionReason" class="form-control" rows="4"
+                                  placeholder="Explain why this leave is being rejected..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Confirm Rejection</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+function setRejectId(btn) {
+    document.getElementById('rejectLeaveId').value = btn.dataset.id;
+}
+</script>
+</body>
+</html>

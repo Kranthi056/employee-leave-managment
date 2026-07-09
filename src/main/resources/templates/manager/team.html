@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
@@ -20,7 +21,9 @@
         <div class="collapse navbar-collapse">
             <ul class="navbar-nav ms-auto">
                 <li class="nav-item"><a class="nav-link" href="/manager/dashboard">Dashboard</a></li>
-                <li class="nav-item"><a class="nav-link" href="/manager/employees">Leave Requests</a></li>
+                <li class="nav-item"><a class="nav-link" href="/manager/employees">Employee Leaves</a></li>
+                <li class="nav-item"><a class="nav-link" href="/manager/apply">Apply Leave</a></li>
+                <li class="nav-item"><a class="nav-link" href="/manager/my-leaves">My Leaves</a></li>
                 <li class="nav-item"><a class="nav-link active" href="/manager/team">View Team</a></li>
                 <li class="nav-item"><a class="nav-link" href="/manager/profile">My Profile</a></li>
                 <li class="nav-item"><a class="nav-link text-danger" href="/logout">Logout</a></li>
@@ -32,7 +35,7 @@
 <div class="container">
     <div class="d-flex align-items-center gap-3 mb-4">
         <h3 class="mb-0">My Team</h3>
-        <span class="team-count" th:text="${#lists.size(teamMembers) + ' / 5 Members'}">0/5 Members</span>
+        <span class="team-count" th:text="${#lists.size(teamMembers) + ' / ' + maxTeamSize + ' Members'}">0/10 Members</span>
     </div>
 
     <div class="card p-4">

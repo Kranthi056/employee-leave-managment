@@ -1,5 +1,6 @@
 package com.example.employee.leave.managment.controller;
 
+import com.example.employee.leave.managment.config.AppConstants;
 import com.example.employee.leave.managment.model.User;
 import com.example.employee.leave.managment.service.LeaveService;
 import com.example.employee.leave.managment.service.PublicHolidayService;
@@ -31,6 +32,7 @@ public class HRController {
         this.passwordEncoder = passwordEncoder;
         this.holidayService  = holidayService;
     }
+
     @PostMapping("/delete-leave")
     public String deleteLeave(@RequestParam int id,
                               @RequestParam(defaultValue = "/hr/dashboard") String redirectTo) {
@@ -134,7 +136,6 @@ public class HRController {
         return "redirect:/hr/add-manager?success";
     }
 
-    // Edit employee name, dept, phone, address
     @PostMapping("/edit-employee")
     public String editEmployee(@RequestParam int id,
                                @RequestParam String name,
@@ -145,7 +146,6 @@ public class HRController {
         return "redirect:/hr/employees?updated";
     }
 
-    // Edit manager name, dept, phone, address
     @PostMapping("/edit-manager")
     public String editManager(@RequestParam int id,
                               @RequestParam String name,
@@ -170,6 +170,55 @@ public class HRController {
         return "redirect:" + redirectTo + "?restored";
     }
 
+    @PostMapping("/delete-employee-permanent")
+    public String deleteEmployeePermanent(@RequestParam int id, Authentication auth) {
+        userService.deleteUserPermanently(id, auth.getName());
+        return "redirect:/hr/employees?permanentlyDeleted";
+    }
+
+    @PostMapping("/delete-manager-permanent")
+    public String deleteManagerPermanent(@RequestParam int id, Authentication auth) {
+        userService.deleteUserPermanently(id, auth.getName());
+        return "redirect:/hr/managers?permanentlyDeleted";
+    }
+
+    @GetMapping("/deleted-users")
+    public String viewDeletedUsers(Model model, Authentication auth) {
+        model.addAttribute("user",         userService.findByEmail(auth.getName()));
+        model.addAttribute("deletedUsers", userService.getDeletedUsers());
+        return "Hr/deleted-users";
+    }
+
+    @GetMapping("/manager-logs")
+    public String viewManagerLogs(Model model, Authentication auth) {
+        model.addAttribute("user", userService.findByEmail(auth.getName()));
+        model.addAttribute("logs", userService.getManagerAssignmentLogs());
+        return "Hr/manager-logs";
+    }
+
+    // ── NEW: HR approves/rejects leave requests submitted by MANAGERS.
+    // Styled and structured the same way manager/employees.html approves
+    // employee leave — same table layout, same reject-with-reason modal.
+    @GetMapping("/manager-leaves")
+    public String managerLeaves(Model model, Authentication auth) {
+        model.addAttribute("user",   userService.findByEmail(auth.getName()));
+        model.addAttribute("leaves", leaveService.getManagerLeaves());
+        return "Hr/manager-leaves";
+    }
+
+    @GetMapping("/manager-leaves/approve/{id}")
+    public String approveManagerLeave(@PathVariable int id) {
+        leaveService.updateStatus(id, "APPROVED");
+        return "redirect:/hr/manager-leaves?approved";
+    }
+
+    @PostMapping("/manager-leaves/reject")
+    public String rejectManagerLeave(@RequestParam int id,
+                                     @RequestParam String rejectionReason) {
+        leaveService.rejectWithReason(id, rejectionReason);
+        return "redirect:/hr/manager-leaves?rejected";
+    }
+
     @GetMapping("/assign-manager")
     public String assignManagerPage(Model model, Authentication auth) {
         List<User> allManagers = userService.getAllManagers();
@@ -181,27 +230,29 @@ public class HRController {
             }
         }
         model.addAttribute("user",                userService.findByEmail(auth.getName()));
-        model.addAttribute("managers",            activeManagers);   // for assignment buttons
-        model.addAttribute("allManagers",         allManagers);       // for name lookup in assigned table
+        model.addAttribute("managers",            activeManagers);
+        model.addAttribute("allManagers",         allManagers);
         model.addAttribute("unassignedEmployees", userService.getUnassignedEmployees());
         model.addAttribute("assignedEmployees",   userService.getAssignedEmployees());
+        model.addAttribute("maxTeamSize",         AppConstants.MAX_TEAM_SIZE);
         return "Hr/assign-manager";
     }
 
     @PostMapping("/assign-manager")
     public String assignManager(@RequestParam int employeeId,
-                                @RequestParam int managerId) {
+                                @RequestParam int managerId,
+                                Authentication auth) {
         int teamSize = userService.getTeamByManager(managerId).size();
-        if (teamSize >= 5) {
+        if (teamSize >= AppConstants.MAX_TEAM_SIZE) {
             return "redirect:/hr/assign-manager?error=Team+is+full";
         }
-        userService.assignManager(employeeId, managerId);
+        userService.assignManager(employeeId, managerId, auth.getName());
         return "redirect:/hr/assign-manager?assigned";
     }
 
     @PostMapping("/unassign-employee")
-    public String unassignEmployee(@RequestParam int employeeId) {
-        userService.unassignEmployee(employeeId);
+    public String unassignEmployee(@RequestParam int employeeId, Authentication auth) {
+        userService.unassignEmployee(employeeId, auth.getName());
         return "redirect:/hr/assign-manager?unassigned";
     }
 

@@ -5,6 +5,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
@@ -30,6 +31,8 @@ public class UserRepository {
         try { u.setPhone(rs.getString("phone")); }          catch (Exception ignored) {}
         try { u.setAddress(rs.getString("address")); }      catch (Exception ignored) {}
         try { u.setManagerId((Integer) rs.getObject("manager_id")); } catch (Exception ignored) {}
+        try { u.setFailedAttempts(rs.getInt("failed_attempts")); }    catch (Exception ignored) {}
+        try { u.setLockUntil(rs.getObject("lock_until", LocalDateTime.class)); } catch (Exception ignored) {}
         return u;
     };
 
@@ -69,7 +72,6 @@ public class UserRepository {
         return jdbcTemplate.query(sql, userRowMapper);
     }
 
-    // Active employees that already have a manager assigned
     public List<User> getAssignedEmployees() {
         String sql = "SELECT * FROM users WHERE role = 'ROLE_EMPLOYEE' AND active = true AND manager_id IS NOT NULL ORDER BY name";
         return jdbcTemplate.query(sql, userRowMapper);
@@ -99,7 +101,6 @@ public class UserRepository {
     public void deactivateUser(int id) {
         String sql = "UPDATE users SET active = false WHERE id = ?";
         jdbcTemplate.update(sql, id);
-        // If this was a manager, unassign their team
         String unassign = "UPDATE users SET manager_id = NULL WHERE manager_id = ?";
         jdbcTemplate.update(unassign, id);
     }
@@ -119,7 +120,6 @@ public class UserRepository {
         jdbcTemplate.update(sql, name, department, phone, address, id);
     }
 
-    // Update password — pass in already-encoded hash
     public void updatePassword(int id, String hashedPassword) {
         String sql = "UPDATE users SET password = ? WHERE id = ?";
         jdbcTemplate.update(sql, hashedPassword, id);
@@ -134,5 +134,31 @@ public class UserRepository {
     public List<User> getAllEmployeesAndManagers() {
         String sql = "SELECT * FROM users WHERE role IN ('ROLE_EMPLOYEE','ROLE_MANAGER') ORDER BY role, name";
         return jdbcTemplate.query(sql, userRowMapper);
+    }
+
+    public void deleteById(int id) {
+        String sql = "DELETE FROM users WHERE id = ?";
+        jdbcTemplate.update(sql, id);
+    }
+
+    // ── NEW: login lockout support ──
+
+    public void setFailedAttempts(String email, int attempts) {
+        String sql = "UPDATE users SET failed_attempts = ? WHERE email = ?";
+        jdbcTemplate.update(sql, attempts, email);
+    }
+
+    // Clears both the attempt counter AND any active lock — called on every
+    // successful login, and right after a lock is freshly applied (see
+    // UserService.recordFailedLogin: the counter resets to 0 once locked,
+    // so the next 5 attempts after the lock expires start fresh).
+    public void resetFailedAttempts(String email) {
+        String sql = "UPDATE users SET failed_attempts = 0, lock_until = NULL WHERE email = ?";
+        jdbcTemplate.update(sql, email);
+    }
+
+    public void lockUser(String email, LocalDateTime until) {
+        String sql = "UPDATE users SET lock_until = ? WHERE email = ?";
+        jdbcTemplate.update(sql, until, email);
     }
 }

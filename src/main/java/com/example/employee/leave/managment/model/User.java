@@ -1,5 +1,6 @@
 package com.example.employee.leave.managment.model;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public class User {
@@ -24,6 +25,10 @@ public class User {
     private int approvedLeaves;
     private int rejectedLeaves;
     private int leftLeaves;
+
+    // ── NEW: login lockout tracking ──
+    private int failedAttempts;
+    private LocalDateTime lockUntil;
 
     public User() {}
 
@@ -80,4 +85,10 @@ public class User {
 
     public int getLeftLeaves() { return leftLeaves; }
     public void setLeftLeaves(int leftLeaves) { this.leftLeaves = leftLeaves; }
+
+    public int getFailedAttempts() { return failedAttempts; }
+    public void setFailedAttempts(int failedAttempts) { this.failedAttempts = failedAttempts; }
+
+    public LocalDateTime getLockUntil() { return lockUntil; }
+    public void setLockUntil(LocalDateTime lockUntil) { this.lockUntil = lockUntil; }
 }
