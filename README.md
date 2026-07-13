@@ -1,4 +1,4 @@
-Secure Employee Leave Management System
+## Secure Employee Leave Management System
 
 A robust, role-based Leave Management System built with **Spring Boot**, featuring strong security, audit logging, and real-time monitoring using Prometheus + Grafana.
 
