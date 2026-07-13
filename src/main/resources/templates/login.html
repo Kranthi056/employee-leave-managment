@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
@@ -131,6 +132,18 @@
 
             <div th:if="${param.wrongrole}" class="alert alert-warning py-1 small">
                 That account isn't registered under the role you selected.
+            </div>
+
+            <!-- NEW: session simply timed out from inactivity, or a second
+                 login elsewhere invalidated this one (maximumSessions(1)) -->
+            <div th:if="${param.sessionExpired}" class="alert alert-warning py-1 small">
+                ⏱️ Your session expired after a period of inactivity. Please sign in again.
+            </div>
+
+            <!-- NEW: authenticated user tried to open a page their role
+                 doesn't have access to -->
+            <div th:if="${param.forbidden}" class="alert alert-danger py-1 small">
+                🚫 You don't have permission to access that page.
             </div>
 
             <div th:if="${param.logout}" class="alert alert-success py-1 small">Logged out.</div>

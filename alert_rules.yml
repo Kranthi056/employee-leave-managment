@@ -1,0 +1,79 @@
+groups:
+
+  # ── Availability ──────────────────────────────────────────────────────
+  - name: availability
+    rules:
+      - alert: BackendDown
+        expr: up{job="spring-boot-app"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Backend service is DOWN"
+          description: "Prometheus has not been able to scrape the Spring Boot backend for over 1 minute."
+
+  # ── Brute force / account takeover ──────────────────────────────────────
+  - name: brute-force
+    rules:
+      - alert: HighFailedLoginRate
+        expr: sum(rate(logins_total{outcome="failure"}[5m])) > 0.5
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Elevated failed-login rate"
+          description: "More than 0.5 failed logins/sec sustained for 2 minutes — possible brute-force attempt against the login form."
+
+      - alert: AccountLockoutSpike
+        expr: increase(logins_total{outcome="locked"}[10m]) > 3
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Multiple account lockouts"
+          description: "More than 3 accounts have been locked out (5 failed attempts each) in the last 10 minutes."
+
+  # ── Authorization / privilege escalation ────────────────────────────────
+  - name: access-control
+    rules:
+      - alert: PrivilegeEscalationAttempts
+        expr: increase(unauthorized_access_attempts_total{type="privilege_escalation"}[10m]) > 5
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Repeated 403s from an authenticated user"
+          description: "A logged-in user has triggered more than 5 privilege-escalation 403s in 10 minutes (e.g. an EMPLOYEE repeatedly requesting /hr/** URLs)."
+
+      - alert: UnauthenticatedAccessSpike
+        expr: increase(unauthorized_access_attempts_total{type="unauthenticated"}[5m]) > 20
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Spike in unauthenticated requests to protected URLs"
+          description: "More than 20 unauthenticated requests to protected endpoints in 5 minutes — could indicate scanning/enumeration."
+
+  # ── Input validation / XSS ──────────────────────────────────────────────
+  - name: input-validation
+    rules:
+      - alert: XSSAttemptDetected
+        expr: increase(xss_validation_failures_total[5m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Sanitizer stripped disallowed markup from a form submission"
+          description: "InputSanitizer removed HTML/script content from a field within the last 5 minutes — inspect which field/form via the `field`/`form` labels."
+
+  # ── Capacity / latency ───────────────────────────────────────────────────
+  - name: capacity
+    rules:
+      - alert: HighRequestLatencyP95
+        expr: histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket[5m])) by (le)) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "P95 response latency above 1s"
+          description: "95th-percentile HTTP response time has exceeded 1 second for 5 minutes — check throughput/CPU/DB load."

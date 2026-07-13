@@ -1,0 +1,134 @@
+
+
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Security Audit Trail</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: #f4f7f6; font-family: sans-serif; }
+        .navbar { background: #1a1a2e !important; margin-bottom: 30px; }
+        .navbar-brand, .nav-link { color: rgba(255,255,255,0.8) !important; }
+        .nav-link:hover, .nav-link.active { color: #fff !important; }
+        .card { border-radius: 10px; border: none; box-shadow: 0 2px 10px rgba(0,0,0,0.06); }
+        .empid-code { background:#eef2ff; color:#4f46e5; padding:2px 8px; border-radius:6px; font-family:monospace; font-size:12px; }
+        .ip-code { background:#f1f5f9; color:#475569; padding:2px 8px; border-radius:6px; font-family:monospace; font-size:12px; }
+        .ua-cell { max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11.5px; color:#94a3b8; display:inline-block; vertical-align:middle; }
+        .action-deactivate { background:#fff7ed; color:#c2410c; }
+        .action-restore    { background:#f0fdf4; color:#15803d; }
+        .action-delete     { background:#fef2f2; color:#991b1b; }
+        .status-success { background:#f0fdf4; color:#15803d; }
+        .status-failure { background:#fef2f2; color:#991b1b; }
+        .filter-bar { display:flex; gap:6px; margin-bottom:16px; flex-wrap:wrap; }
+        .filter-btn { padding:6px 14px; border-radius:20px; border:1.5px solid #e2e8f0; background:#fff; font-size:12px; font-weight:600; color:#64748b; cursor:pointer; transition:all 0.14s; }
+        .filter-btn.active { background:#4f46e5; color:#fff; border-color:#4f46e5; }
+        .search-bar { padding:8px 13px; border:1.5px solid #e2e8f0; border-radius:8px; font-size:13px; width:230px; outline:none; }
+        .search-bar:focus { border-color:#4f46e5; }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark shadow-sm">
+    <div class="container">
+        <a class="navbar-brand" href="#">HR Admin</a>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a class="nav-link" href="/hr/dashboard">Dashboard</a></li>
+                <li class="nav-item"><a class="nav-link" href="/hr/employees">Employees</a></li>
+                <li class="nav-item"><a class="nav-link" href="/hr/managers">Managers</a></li>
+                <li class="nav-item"><a class="nav-link" href="/hr/manager-leaves">Manager Leaves</a></li>
+                <li class="nav-item"><a class="nav-link" href="/hr/assign-manager">Assign Manager</a></li>
+                <li class="nav-item"><a class="nav-link" href="/hr/deleted-users">Deleted Records</a></li>
+                <li class="nav-item"><a class="nav-link active" href="/hr/security-audit">Security Audit</a></li>
+                <li class="nav-item"><a class="nav-link" href="/hr/profile">My Profile</a></li>
+                <li class="nav-item"><a class="nav-link text-danger" href="/logout">Logout</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <h3 class="mb-1">Security Audit Trail</h3>
+    <p class="text-muted mb-4" style="font-size:13.5px;">
+        Non-repudiation log of every deactivate / restore / permanent-delete action an HR
+        administrator has performed against an employee or manager account — who did it,
+        what happened, and where the request came from. This table is append-only; nothing
+        in the app ever edits or removes a row here.
+    </p>
+
+    <div class="card p-4">
+        <div th:if="${#lists.isEmpty(audit)}" class="alert alert-info text-center mb-0">
+            No administrative actions have been recorded yet.
+        </div>
+
+        <div th:if="${!#lists.isEmpty(audit)}">
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                <div class="filter-bar mb-0">
+                    <button class="filter-btn active" onclick="filterTable('all',this)">All Actions</button>
+                    <button class="filter-btn" onclick="filterTable('DEACTIVATE',this)">Deactivate</button>
+                    <button class="filter-btn" onclick="filterTable('RESTORE',this)">Restore</button>
+                    <button class="filter-btn" onclick="filterTable('PERMANENT_DELETE',this)">Permanent Delete</button>
+                </div>
+                <input class="search-bar" id="searchAudit" placeholder="🔍 Search…">
+            </div>
+
+            <div style="overflow-x:auto;">
+                <table class="table table-hover align-middle" id="auditTable">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Admin</th>
+                            <th>Action</th>
+                            <th>Target Employee</th>
+                            <th>IP Address</th>
+                            <th>User Agent</th>
+                            <th>Outcome</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="a : ${audit}" th:attr="data-action=${a.action}">
+                            <td style="white-space:nowrap; font-size:12.5px;" th:text="${a.eventTime}">2026-01-01 12:00</td>
+                            <td>
+                                <div class="fw-semibold" th:text="${a.adminUsername}">hr@company.com</div>
+                                <div class="text-muted" style="font-size:11px;" th:text="${a.adminId != null ? ('ID: ' + a.adminId) : 'account since deleted'}">ID: 1</div>
+                            </td>
+                            <td>
+                                <span class="badge"
+                                      th:classappend="${a.action == 'DEACTIVATE'} ? 'action-deactivate' : (${a.action == 'RESTORE'} ? 'action-restore' : 'action-delete')"
+                                      th:text="${#strings.replace(a.action, '_', ' ')}">DEACTIVATE</span>
+                            </td>
+                            <td>
+                                <div class="fw-semibold" th:text="${a.targetEmployeeName != null ? a.targetEmployeeName : '(unknown)'}">Name</div>
+                                <div class="text-muted" style="font-size:11px;" th:text="${a.targetEmployeeId != null ? ('ID: ' + a.targetEmployeeId) : '—'}">ID: 3</div>
+                            </td>
+                            <td><span class="ip-code" th:text="${a.ipAddress != null ? a.ipAddress : '—'}">—</span></td>
+                            <td><span class="ua-cell" th:text="${a.userAgent != null ? a.userAgent : '—'}" th:title="${a.userAgent}">—</span></td>
+                            <td>
+                                <span class="badge"
+                                      th:classappend="${a.status == 'SUCCESS'} ? 'status-success' : 'status-failure'"
+                                      th:text="${a.status}">SUCCESS</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function filterTable(action, btn) {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('#auditTable tbody tr').forEach(r => {
+        r.style.display = (action === 'all' || r.dataset.action === action) ? '' : 'none';
+    });
+}
+document.getElementById('searchAudit')?.addEventListener('keyup', function () {
+    const v = this.value.toLowerCase();
+    document.querySelectorAll('#auditTable tbody tr').forEach(r => {
+        r.style.display = r.textContent.toLowerCase().includes(v) ? '' : 'none';
+    });
+});
+</script>
+</body>
+</html>

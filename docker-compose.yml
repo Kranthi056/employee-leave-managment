@@ -1,0 +1,102 @@
+version: '3.8'
+
+services:
+  db:
+    build:
+      context: .
+      dockerfile: Dockerfile.db
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: employee_leave_management
+    networks:
+      - db-net                 # ONLY the isolated DB network — no internet
+                                # egress, no host port published, unreachable
+                                # from prometheus/grafana/alertmanager.
+    volumes:
+      - mysql-data:/var/lib/mysql
+    restart: unless-stopped
+
+  backend:
+    build: .
+    ports:
+      - "9092:9090"             # the ONLY application port published to the host
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/employee_leave_management
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+      SPRING_PROFILES_ACTIVE: prod
+    depends_on:
+      - db
+    networks:
+      - db-net                  # to reach MySQL
+      - app-net                  # public-facing network (this is where the
+                                  # published host port effectively lives)
+      - monitoring-net           # so Prometheus can scrape /actuator/prometheus
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./alert_rules.yml:/etc/prometheus/alert_rules.yml
+    ports:
+      - "9091:9090"
+    networks:
+      - monitoring-net
+    depends_on:
+      - backend
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    restart: unless-stopped
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    volumes:
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml
+    ports:
+      - "9093:9093"
+    networks:
+      - monitoring-net
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    networks:
+      - monitoring-net
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    depends_on:
+      - prometheus
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    restart: unless-stopped
+
+networks:
+  # MySQL lives here and ONLY here. internal:true means containers on this
+  # network have no route to the outside world, and — since db is attached
+  # to no other network — nothing except `backend` can reach it at all.
+  db-net:
+    internal: true
+
+  # The application's public-facing network. `backend` is the only service
+  # on it; this is conceptually the "frontend + backend on a public
+  # network" boundary — everything behind it (db, prometheus internals)
+  # stays off of it.
+  app-net:
+    driver: bridge
+
+  # Observability plane: backend exposes /actuator/prometheus here,
+  # Prometheus scrapes it and evaluates alert_rules.yml, Alertmanager
+  # receives firing alerts, Grafana queries Prometheus. Isolated from db-net.
+  monitoring-net:
+    driver: bridge
+
+volumes:
+  mysql-data:
+  grafana-data:

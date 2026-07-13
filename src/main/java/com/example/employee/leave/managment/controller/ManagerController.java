@@ -6,6 +6,7 @@ import com.example.employee.leave.managment.model.User;
 import com.example.employee.leave.managment.service.LeaveService;
 import com.example.employee.leave.managment.service.PublicHolidayService;
 import com.example.employee.leave.managment.service.UserService;
+import com.example.employee.leave.managment.util.InputSanitizer;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Controller;
@@ -20,14 +21,17 @@ public class ManagerController {
     private final UserService           userService;
     private final BCryptPasswordEncoder passwordEncoder;
     private final PublicHolidayService  holidayService;
+    private final InputSanitizer        inputSanitizer;
 
     public ManagerController(LeaveService leaveService, UserService userService,
                              BCryptPasswordEncoder passwordEncoder,
-                             PublicHolidayService holidayService) {
+                             PublicHolidayService holidayService,
+                             InputSanitizer inputSanitizer) {
         this.leaveService    = leaveService;
         this.userService     = userService;
         this.passwordEncoder = passwordEncoder;
         this.holidayService  = holidayService;
+        this.inputSanitizer  = inputSanitizer;
     }
 
     @GetMapping("/dashboard")
@@ -140,7 +144,10 @@ public class ManagerController {
                                 @RequestParam(required = false) String bio,
                                 Authentication auth) {
         User user = userService.findByEmail(auth.getName());
-        userService.updateProfile(user.getId(), phone, address, bio);
+        userService.updateProfile(user.getId(),
+                inputSanitizer.clean(phone,   "phone",   "manager-update-profile"),
+                inputSanitizer.clean(address, "address", "manager-update-profile"),
+                inputSanitizer.clean(bio,     "bio",     "manager-update-profile"));
         return "redirect:/manager/profile?updated";
     }
 

@@ -4,7 +4,10 @@ import com.example.employee.leave.managment.config.AppConstants;
 import com.example.employee.leave.managment.model.User;
 import com.example.employee.leave.managment.service.LeaveService;
 import com.example.employee.leave.managment.service.PublicHolidayService;
+import com.example.employee.leave.managment.service.SecurityAuditService;
 import com.example.employee.leave.managment.service.UserService;
+import com.example.employee.leave.managment.util.InputSanitizer;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Controller;
@@ -23,14 +26,20 @@ public class HRController {
     private final UserService           userService;
     private final BCryptPasswordEncoder passwordEncoder;
     private final PublicHolidayService  holidayService;
+    private final SecurityAuditService  securityAuditService;
+    private final InputSanitizer        inputSanitizer;
 
     public HRController(LeaveService leaveService, UserService userService,
                         BCryptPasswordEncoder passwordEncoder,
-                        PublicHolidayService holidayService) {
-        this.leaveService    = leaveService;
-        this.userService     = userService;
-        this.passwordEncoder = passwordEncoder;
-        this.holidayService  = holidayService;
+                        PublicHolidayService holidayService,
+                        SecurityAuditService securityAuditService,
+                        InputSanitizer inputSanitizer) {
+        this.leaveService         = leaveService;
+        this.userService          = userService;
+        this.passwordEncoder      = passwordEncoder;
+        this.holidayService       = holidayService;
+        this.securityAuditService = securityAuditService;
+        this.inputSanitizer       = inputSanitizer;
     }
 
     @PostMapping("/delete-leave")
@@ -49,14 +58,14 @@ public class HRController {
         model.addAttribute("pendingLeaves",  leaveService.countAllByStatus("PENDING"));
         model.addAttribute("recentLeaves",   leaveService.getRecentLeaves(10));
         model.addAttribute("holidays",       holidayService.getUpcomingIndianHolidays());
-        return "Hr/dashboard";
+        return "hr/dashboard";
     }
 
     @GetMapping("/employees")
     public String viewEmployees(Model model, Authentication auth) {
         model.addAttribute("user",      userService.findByEmail(auth.getName()));
         model.addAttribute("employees", userService.getAllEmployees());
-        return "Hr/employees";
+        return "hr/employees";
     }
 
     @GetMapping("/managers")
@@ -69,14 +78,14 @@ public class HRController {
         }
         model.addAttribute("user",     userService.findByEmail(auth.getName()));
         model.addAttribute("managers", managers);
-        return "Hr/managers";
+        return "hr/managers";
     }
 
     @GetMapping("/add-employee")
     public String addEmployeePage(Model model, Authentication auth) {
         model.addAttribute("user",        userService.findByEmail(auth.getName()));
         model.addAttribute("newEmployee", new User());
-        return "Hr/add-employee";
+        return "hr/add-employee";
     }
 
     @PostMapping("/add-employee")
@@ -87,14 +96,19 @@ public class HRController {
             model.addAttribute("user",        userService.findByEmail(auth.getName()));
             model.addAttribute("newEmployee", emp);
             model.addAttribute("error",       "Passwords do not match!");
-            return "Hr/add-employee";
+            return "hr/add-employee";
         }
         if (userService.findByEmail(emp.getEmail()) != null) {
             model.addAttribute("user",        userService.findByEmail(auth.getName()));
             model.addAttribute("newEmployee", emp);
             model.addAttribute("error",       "Email already registered.");
-            return "Hr/add-employee";
+            return "hr/add-employee";
         }
+        // NEW: strip any HTML/script markup out of the free-text fields
+        // before this ever reaches the database (defense in depth against
+        // stored XSS from an internal user, malicious or not).
+        inputSanitizer.sanitizeUser(emp, "add-employee");
+
         String empId = "EMP-" + UUID.randomUUID().toString().replace("-", "").substring(0, 6).toUpperCase();
         emp.setEmpId(empId);
         emp.setRole("ROLE_EMPLOYEE");
@@ -108,7 +122,7 @@ public class HRController {
     public String addManagerPage(Model model, Authentication auth) {
         model.addAttribute("user",       userService.findByEmail(auth.getName()));
         model.addAttribute("newManager", new User());
-        return "Hr/add-manager";
+        return "hr/add-manager";
     }
 
     @PostMapping("/add-manager")
@@ -119,14 +133,17 @@ public class HRController {
             model.addAttribute("user",       userService.findByEmail(auth.getName()));
             model.addAttribute("newManager", mgr);
             model.addAttribute("error",      "Passwords do not match!");
-            return "Hr/add-manager";
+            return "hr/add-manager";
         }
         if (userService.findByEmail(mgr.getEmail()) != null) {
             model.addAttribute("user",       userService.findByEmail(auth.getName()));
             model.addAttribute("newManager", mgr);
             model.addAttribute("error",      "Email already registered.");
-            return "Hr/add-manager";
+            return "hr/add-manager";
         }
+        // NEW: same sanitization as add-employee — see comment there.
+        inputSanitizer.sanitizeUser(mgr, "add-manager");
+
         String empId = "MGR-" + UUID.randomUUID().toString().replace("-", "").substring(0, 6).toUpperCase();
         mgr.setEmpId(empId);
         mgr.setRole("ROLE_MANAGER");
@@ -142,7 +159,11 @@ public class HRController {
                                @RequestParam String department,
                                @RequestParam(required = false) String phone,
                                @RequestParam(required = false) String address) {
-        userService.updateEmployeeInfo(id, name, department, phone, address);
+        userService.updateEmployeeInfo(id,
+                inputSanitizer.clean(name,       "name",       "edit-employee"),
+                inputSanitizer.clean(department, "department", "edit-employee"),
+                inputSanitizer.clean(phone,      "phone",      "edit-employee"),
+                inputSanitizer.clean(address,    "address",    "edit-employee"));
         return "redirect:/hr/employees?updated";
     }
 
@@ -152,48 +173,83 @@ public class HRController {
                               @RequestParam String department,
                               @RequestParam(required = false) String phone,
                               @RequestParam(required = false) String address) {
-        userService.updateEmployeeInfo(id, name, department, phone, address);
+        userService.updateEmployeeInfo(id,
+                inputSanitizer.clean(name,       "name",       "edit-manager"),
+                inputSanitizer.clean(department, "department", "edit-manager"),
+                inputSanitizer.clean(phone,      "phone",      "edit-manager"),
+                inputSanitizer.clean(address,    "address",    "edit-manager"));
         return "redirect:/hr/managers?updated";
     }
 
+    // ── NEW: every deletion/restoration an HR admin performs is written to
+    // security_audit_log (timestamp, admin id/username, action, target
+    // employee id/name, IP, user-agent, outcome) via SecurityAuditService,
+    // and mirrored as an audit_log_events_total Prometheus counter. The
+    // target user is looked up BEFORE the action runs so its name is still
+    // available even after a permanent delete removes the row.
+
     @PostMapping("/delete-user")
     public String deleteUser(@RequestParam int id,
-                             @RequestParam(defaultValue = "/hr/employees") String redirectTo) {
+                             @RequestParam(defaultValue = "/hr/employees") String redirectTo,
+                             Authentication auth, HttpServletRequest request) {
+        User target = userService.findById(id);
         userService.deactivateUser(id);
+        securityAuditService.logUserAction(auth, target, id,
+                SecurityAuditService.ACTION_DEACTIVATE, SecurityAuditService.STATUS_SUCCESS, request);
         return "redirect:" + redirectTo + "?deleted";
     }
 
     @PostMapping("/restore-user")
     public String restoreUser(@RequestParam int id,
-                              @RequestParam(defaultValue = "/hr/employees") String redirectTo) {
+                              @RequestParam(defaultValue = "/hr/employees") String redirectTo,
+                              Authentication auth, HttpServletRequest request) {
+        User target = userService.findById(id);
         userService.restoreUser(id);
+        securityAuditService.logUserAction(auth, target, id,
+                SecurityAuditService.ACTION_RESTORE, SecurityAuditService.STATUS_SUCCESS, request);
         return "redirect:" + redirectTo + "?restored";
     }
 
     @PostMapping("/delete-employee-permanent")
-    public String deleteEmployeePermanent(@RequestParam int id, Authentication auth) {
-        userService.deleteUserPermanently(id, auth.getName());
+    public String deleteEmployeePermanent(@RequestParam int id, Authentication auth, HttpServletRequest request) {
+        User target = userService.findById(id);
+        boolean success = userService.deleteUserPermanently(id, auth.getName());
+        securityAuditService.logUserAction(auth, target, id, SecurityAuditService.ACTION_PERMANENT_DELETE,
+                success ? SecurityAuditService.STATUS_SUCCESS : SecurityAuditService.STATUS_FAILURE, request);
         return "redirect:/hr/employees?permanentlyDeleted";
     }
 
     @PostMapping("/delete-manager-permanent")
-    public String deleteManagerPermanent(@RequestParam int id, Authentication auth) {
-        userService.deleteUserPermanently(id, auth.getName());
+    public String deleteManagerPermanent(@RequestParam int id, Authentication auth, HttpServletRequest request) {
+        User target = userService.findById(id);
+        boolean success = userService.deleteUserPermanently(id, auth.getName());
+        securityAuditService.logUserAction(auth, target, id, SecurityAuditService.ACTION_PERMANENT_DELETE,
+                success ? SecurityAuditService.STATUS_SUCCESS : SecurityAuditService.STATUS_FAILURE, request);
         return "redirect:/hr/managers?permanentlyDeleted";
+    }
+
+    // ── NEW: lets HR view the audit trail itself (Hr/security-audit.html —
+    // add a template + navbar link the same way deleted-users/manager-logs
+    // already do if you want this reachable from the UI).
+    @GetMapping("/security-audit")
+    public String viewSecurityAudit(Model model, Authentication auth) {
+        model.addAttribute("user",  userService.findByEmail(auth.getName()));
+        model.addAttribute("audit", securityAuditService.getAuditTrail());
+        return "hr/security-audit";
     }
 
     @GetMapping("/deleted-users")
     public String viewDeletedUsers(Model model, Authentication auth) {
         model.addAttribute("user",         userService.findByEmail(auth.getName()));
         model.addAttribute("deletedUsers", userService.getDeletedUsers());
-        return "Hr/deleted-users";
+        return "hr/deleted-users";
     }
 
     @GetMapping("/manager-logs")
     public String viewManagerLogs(Model model, Authentication auth) {
         model.addAttribute("user", userService.findByEmail(auth.getName()));
         model.addAttribute("logs", userService.getManagerAssignmentLogs());
-        return "Hr/manager-logs";
+        return "hr/manager-logs";
     }
 
     // ── NEW: HR approves/rejects leave requests submitted by MANAGERS.
@@ -203,7 +259,7 @@ public class HRController {
     public String managerLeaves(Model model, Authentication auth) {
         model.addAttribute("user",   userService.findByEmail(auth.getName()));
         model.addAttribute("leaves", leaveService.getManagerLeaves());
-        return "Hr/manager-leaves";
+        return "hr/manager-leaves";
     }
 
     @GetMapping("/manager-leaves/approve/{id}")
@@ -235,7 +291,7 @@ public class HRController {
         model.addAttribute("unassignedEmployees", userService.getUnassignedEmployees());
         model.addAttribute("assignedEmployees",   userService.getAssignedEmployees());
         model.addAttribute("maxTeamSize",         AppConstants.MAX_TEAM_SIZE);
-        return "Hr/assign-manager";
+        return "hr/assign-manager";
     }
 
     @PostMapping("/assign-manager")
@@ -270,13 +326,13 @@ public class HRController {
         }
         model.addAttribute("user",    userService.findByEmail(auth.getName()));
         model.addAttribute("reports", allUsers);
-        return "Hr/reports";
+        return "hr/reports";
     }
 
     @GetMapping("/profile")
     public String profile(Model model, Authentication auth) {
         model.addAttribute("user", userService.findByEmail(auth.getName()));
-        return "Hr/profile";
+        return "hr/profile";
     }
 
     @PostMapping("/update-profile")
@@ -285,7 +341,10 @@ public class HRController {
                                 @RequestParam(required = false) String bio,
                                 Authentication auth) {
         User user = userService.findByEmail(auth.getName());
-        userService.updateProfile(user.getId(), phone, address, bio);
+        userService.updateProfile(user.getId(),
+                inputSanitizer.clean(phone,   "phone",   "hr-update-profile"),
+                inputSanitizer.clean(address, "address", "hr-update-profile"),
+                inputSanitizer.clean(bio,     "bio",     "hr-update-profile"));
         return "redirect:/hr/profile?updated";
     }
 
@@ -299,17 +358,17 @@ public class HRController {
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
             model.addAttribute("user",    user);
             model.addAttribute("pwError", "Current password is incorrect.");
-            return "Hr/profile";
+            return "hr/profile";
         }
         if (!newPassword.equals(confirmPassword)) {
             model.addAttribute("user",    user);
             model.addAttribute("pwError", "New passwords do not match.");
-            return "Hr/profile";
+            return "hr/profile";
         }
         if (newPassword.length() < 6) {
             model.addAttribute("user",    user);
             model.addAttribute("pwError", "Password must be at least 6 characters.");
-            return "Hr/profile";
+            return "hr/profile";
         }
 
         userService.updatePassword(user.getId(), passwordEncoder.encode(newPassword));

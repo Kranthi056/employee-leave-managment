@@ -1,3 +1,4 @@
+
 <!-- FILE: hr-add-manager.html -->
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
@@ -64,6 +65,11 @@
         <div class="sb-item"><a href="/hr/reports"><span class="sb-icon"></span> Reports</a></div>
         <div class="sb-section">Account</div>
         <div class="sb-item"><a href="/hr/profile"><span class="sb-icon"></span> My Profile</a></div>
+        <div class="sb-section">Security</div>
+        <div class="sb-item"><a href="/hr/deleted-users"><span class="sb-icon"></span> Deleted Records</a></div>
+        <div class="sb-item"><a href="/hr/manager-leaves"><span class="sb-icon"></span> Manager Leaves</a></div>
+        <div class="sb-item"><a href="/hr/manager-logs"><span class="sb-icon"></span> Manager Logs</a></div>
+        <div class="sb-item"><a href="/hr/security-audit"><span class="sb-icon"></span> Security Audit</a></div>
     </nav>
     <div class="sb-footer">
         <div class="sb-user"><div class="sb-avatar" th:text="${#strings.toUpperCase(#strings.substring(user.name,0,1))}">H</div><div><div class="sb-uname" th:text="${user.name}">HR</div><div class="sb-urole">Administrator</div></div></div>

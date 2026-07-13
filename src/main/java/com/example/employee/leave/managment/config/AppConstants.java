@@ -16,4 +16,5 @@ public final class AppConstants {
     // for the reasoning).
     public static final int MAX_LOGIN_ATTEMPTS = 5;
     public static final int LOCKOUT_MINUTES    = 5;
+    public static final int SESSION_TIMEOUT_MINUTES = 10;
 }
