@@ -44,6 +44,15 @@ A robust, role-based Leave Management System built with **Spring Boot**, featuri
 - **Monitoring**: Prometheus, Grafana, Micrometer, Alertmanager
 - **DevOps**: Docker, Docker Compose
 
+## Video ----------------------------------------------------------------------------------- 
+
+
+
+https://github.com/user-attachments/assets/e3dfa808-d6d7-4900-ab8e-9af1dc19ac67
+
+
+
+
 
 
 
